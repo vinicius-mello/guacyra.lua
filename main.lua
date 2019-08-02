@@ -9,10 +9,11 @@ guacyra.importSymbols(list)
 require('ioev')
 guacyra.debug.match = false
 guacyra.debug.eval = false
-
 i[1] = Set(a,Range(10))
 i[2] = Map(function(x) return x^2 end, a)
 i[3] = NestList(function(x) return Together(1+1/x) end ,x,7)
 i[4] = Map(LaTeX,o[3])
-i[5] = SetDelayed(f(x_,y_),x^2+y)
+i[7] = Set(x,4)
+i[8] = Set(y,8)
+i[5] = Set(f(x_,y_),x^2+y)
 i[6] = f(2,3)

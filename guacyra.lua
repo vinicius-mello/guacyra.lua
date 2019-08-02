@@ -23,7 +23,7 @@ local Boolean = makeAtom('Boolean')
 local Function = makeAtom('Function')
 
 local function isObject(e)
-  return type(e)=='table' and getmetatable(e)==guacyra 
+  return getmetatable(e)==guacyra 
 end
 
 local function isAtomHead(e) 
@@ -778,9 +778,21 @@ local Set = Symbol('Set')
 guacyra.Set = Set
 Set.holdFirst = true
 Set:addDown(function(exp)
-  if Match(exp, Set(a_,b_)) then
+  if Match(exp, Set(a_(Symbol),b_)) then
     a.value = b
     return b
+  elseif Match(exp, Set(f_(p__),v_)) then
+    local fe = p:copy()
+    fe[0] = f
+    local ve = v
+    f:addDown(function(exp2)
+      local r = exp2:matches(fe)
+      if #r>0 then
+        return ve:subst(r[1])
+      end
+      return nil
+    end)
+    return Null
   end
   return nil 
 end)
@@ -789,7 +801,10 @@ local SetDelayed = Symbol('SetDelayed')
 guacyra.SetDelayed = SetDelayed
 SetDelayed.holdAll = true
 SetDelayed:addDown(function(exp)
-  if Match(exp, SetDelayed(f_(p__),v_)) then
+  if Match(exp, SetDelayed(a_(Symbol),b_)) then
+    a.value = b
+    return b
+  elseif Match(exp, SetDelayed(f_(p__),v_)) then
     local fe = p:copy()
     fe[0] = f
     local ve = v
