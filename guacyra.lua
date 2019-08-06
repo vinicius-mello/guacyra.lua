@@ -328,7 +328,7 @@ guacyra.__index = guacyra
 
 -- lua 5.2 workaround
 local setfenv = setfenv or function(f, t)
---    f = (type(f) == 'function' and f or debug.getinfo(f + 1, 'f').func)
+    f = (type(f) == 'function' and f or debug.getinfo(f + 1, 'f').func)
     local name
     local up = 0
     repeat
@@ -340,9 +340,10 @@ local setfenv = setfenv or function(f, t)
       debug.setupvalue(f, up, t)
     end
 end
+guacyra.setfenv = setfenv
 
 getfenv = getfenv or function(f)
---    f = (type(f) == 'function' and f or debug.getinfo(f + 1, 'f').func)
+    f = (type(f) == 'function' and f or debug.getinfo(f + 1, 'f').func)
     local name, val
     local up = 0
     repeat
