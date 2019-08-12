@@ -41,6 +41,12 @@ LaTeX:addDown(function(exp)
       local den = LaTeX(l[2]):eval()
       return Cat('\\frac{',num,'}{',den,'}')
     end
+  elseif Match(exp, LaTeX(Power(a_,b_(Rational)))) and b[1]==1 then
+    if b[2]==2 then
+      return Cat('\\sqrt{',LaTeX(a),'}')
+    else
+      return Cat('\\sqrt['..b[2]..']{',LaTeX(a),'}')
+    end
   elseif Match(exp, LaTeX(Power(a_,b_(Number)))) then
     if b[1]<0 then
       return Cat('\\frac{1}{',LaTeX(Power(a,-b[1])),'}')

@@ -2,6 +2,9 @@ local guacyra = require('guacyra')
 local number = require('number')
 local binomial = number.binomial
 local isInteger = number.isInteger
+local factorization = number.factorization
+local SymbEnv = require('symbenv').SymbEnv
+
 
 local Symbol = guacyra.Symbol
 local Plus = guacyra.Plus
@@ -12,6 +15,7 @@ local Rational = guacyra.Rational
 local Error = guacyra.Error
 local Map = guacyra.Map
 local Apply = guacyra.Apply
+local SetDelayed = guacyra.SetDelayed
 
 Plus.flat = true
 Plus.orderless = true
@@ -125,6 +129,29 @@ Times:addDown(function(exp)
   return nil
 end)
 
+Times:addDown(function(exp)
+  -- collect expoents
+  local r = Times()
+  local flag = false
+  local coefs = {}
+  for i=1,#exp do
+    if Match(exp[i],Power(a_(Number),b_)) then
+      flag = ins(coefs,b,a) or flag
+    else
+      local t = exp[i]
+      ins(coefs,Number(1),t)
+    end
+  end
+  if flag then 
+    for k,v in pairs(coefs) do
+      v[2][0] = Times
+      r[#r+1] = Power(v[2],v[1])
+    end
+    return r
+  end
+  return nil
+end)
+
 Power:addDown(function(exp)
   if Match(exp, _^0) then 
     return Number(1)
@@ -144,6 +171,39 @@ Power:addDown(function(exp)
     elseif b[1]>0 then
       return Rational(p[1]^b[1],p[2]^b[1])
     end
+  elseif Match(exp, a_(Number)^p_(Rational)) then
+    local function root(fac,p,q)
+      local u, v = 1, 1
+      for i=1,#fac do
+        local fip = fac[i][2]*p
+        local prime = fac[i][1]
+        local a = math.floor(fip/q)
+        local b = fip - a*q
+        u = u * prime^a
+        v = v * prime^b
+      end
+      return u, v
+    end
+    if isInteger(a[1]) and a[1]>0 then
+      if p[1]>0 then
+        local fact = factorization(a[1])
+        local u,v = root(fact,p[1],p[2])
+        if u==1 then 
+          return nil
+        else 
+          return Times(u,Power(v,Rational(1,p[2])))
+        end
+      else
+        local fact = factorization(a[1])
+        p[1] = -p[1]
+        local k = math.floor(p[1]/p[2])
+        local r = p[1]-k*p[2]
+        local u,v = root(fact,p[2]-r,p[2])
+        return Times(Rational(u,a[1]^(k+1)),Power(v,Rational(1,p[2])))
+      end
+    end
+  elseif Match(exp, a_(Rational)^p_(Rational)) then
+    return Times(Power(Number(a[1]),p),Power(Number(a[2]),Rational(-p[1],p[2])))
   elseif Match(exp, Power(Power(a_,b_),c_)) then
     return Power(a,b*c)
   end
@@ -280,10 +340,19 @@ Together:addDown(function(exp)
   return nil
 end)
 
+local Sqrt = Symbol('Sqrt')
+local function init()
+  SymbEnv()
+  In[1] = SetDelayed(Sqrt(x_),Power(x,Rational(1,2)))
+end
+
+init()
+
 return {
   Expand = Expand,
   NumeratorDenominator = NumeratorDenominator,
   Numerator = Numerator,
   Denominator = Denominator,
   Together = Together,
+  Sqrt = Sqrt,
 }
