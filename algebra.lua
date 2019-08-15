@@ -4,7 +4,7 @@ local binomial = number.binomial
 local isInteger = number.isInteger
 local factorization = number.factorization
 local SymbEnv = require('symbenv').SymbEnv
-
+local floor = math.floor
 
 local Symbol = guacyra.Symbol
 local Plus = guacyra.Plus
@@ -29,7 +29,11 @@ Plus:addDown(function(exp)
   elseif Match(exp,Plus(a_(Number),b_(Number),c___)) then
     return Plus(Number(a[1]+b[1]),c)
   elseif Match(exp, Plus(a_(Number),p_(Rational),c___)) then
-    return Plus(Rational(a[1]*p[2]+p[1],p[2]),c)
+    if isInteger(a[1]) then
+      return Plus(Rational(a[1]*p[2]+p[1],p[2]),c)
+    else
+      return Plus(Number((a[1]*p[2]+p[1])/p[2]),c)
+    end
   elseif Match(exp, Plus(p_(Rational),q_(Rational),c___)) then
     return Plus(Rational(p[1]*q[2]+q[1]*p[2],p[2]*q[2]),c)
   end
@@ -92,7 +96,11 @@ Times:addDown(function(exp)
   elseif Match(exp,Times(a_(Number),b_(Number),c___)) then
     return Times(Number(a[1]*b[1]),c)
   elseif Match(exp,Times(a_(Number),p_(Rational),c___)) then
-    return Times(Rational(a[1]*p[1],p[2]),c)
+    if isInteger(a[1]) then
+      return Times(Rational(a[1]*p[1],p[2]),c)
+    else
+      return Times(Number(a[1]*p[1]/p[2]),c)
+    end
   elseif Match(exp,Times(p_(Rational),q_(Rational),c___)) then
     return Times(Rational(p[1]*q[1],p[2]*q[2]),c)
   end
@@ -160,16 +168,24 @@ Power:addDown(function(exp)
   elseif Match(exp, a_^1) then
     return a
   elseif Match(exp, a_(Number)^b_(Number)) then
-    if b[1]<0 then
-      return Rational(1,a[1]^(-b[1]))
-    elseif b[1]>0 then
+    if isInteger(a[1]) and isInteger(b[1]) then
+      if b[1]<0 then
+        return Rational(1,floor(a[1]^(-b[1])))
+      elseif b[1]>0 then
+        return Number(floor(a[1]^b[1]))
+      end
+    else
       return Number(a[1]^b[1])
     end
   elseif Match(exp, p_(Rational)^b_(Number)) then
-    if b[1]<0 then
-      return Rational(p[2]^(-b[1]),p[1]^(-b[1]))
-    elseif b[1]>0 then
-      return Rational(p[1]^b[1],p[2]^b[1])
+    if isInteger(b[1]) then
+      if b[1]<0 then
+        return Rational(floor(p[2]^(-b[1])),floor(p[1]^(-b[1])))
+      elseif b[1]>0 then
+        return Rational(floor(p[1]^b[1]),floor(p[2]^b[1]))
+      end
+    else
+      return Number((p[1]/p[2])^b[1])
     end
   elseif Match(exp, a_(Number)^p_(Rational)) then
     local function root(fac,p,q)
@@ -177,30 +193,34 @@ Power:addDown(function(exp)
       for i=1,#fac do
         local fip = fac[i][2]*p
         local prime = fac[i][1]
-        local a = math.floor(fip/q)
+        local a = floor(fip/q)
         local b = fip - a*q
-        u = u * prime^a
-        v = v * prime^b
+        u = u * floor(prime^a)
+        v = v * floor(prime^b)
       end
       return u, v
     end
-    if isInteger(a[1]) and a[1]>0 then
-      if p[1]>0 then
-        local fact = factorization(a[1])
-        local u,v = root(fact,p[1],p[2])
-        if u==1 then 
-          return nil
-        else 
-          return Times(u,Power(v,Rational(1,p[2])))
+    if isInteger(a[1]) then
+      if a[1]>0 then
+        if p[1]>0 then
+          local fact = factorization(a[1])
+          local u,v = root(fact,p[1],p[2])
+          if u==1 and p[1]==1 then 
+            return nil
+          else 
+            return Times(u,Power(v,Rational(1,p[2])))
+          end
+        else
+          local fact = factorization(a[1])
+          p[1] = -p[1]
+          local k = math.floor(p[1]/p[2])
+          local r = p[1]-k*p[2]
+          local u,v = root(fact,p[2]-r,p[2])
+          return Times(Rational(u,a[1]^(k+1)),Power(v,Rational(1,p[2])))
         end
-      else
-        local fact = factorization(a[1])
-        p[1] = -p[1]
-        local k = math.floor(p[1]/p[2])
-        local r = p[1]-k*p[2]
-        local u,v = root(fact,p[2]-r,p[2])
-        return Times(Rational(u,a[1]^(k+1)),Power(v,Rational(1,p[2])))
       end
+    else
+      return Number(a[1]^(p[1]/p[2]))  
     end
   elseif Match(exp, a_(Rational)^p_(Rational)) then
     return Times(Power(Number(a[1]),p),Power(Number(a[2]),Rational(-p[1],p[2])))

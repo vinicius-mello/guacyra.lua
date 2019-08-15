@@ -7,7 +7,7 @@ guacyra.importSymbols(algebra)
 guacyra.importSymbols(latex)
 guacyra.importSymbols(list)
 local SymbEnv = require('symbenv').SymbEnv
-
+guacyra.debug.eval = false
 function test()
   SymbEnv(true)
   In[1] = Set(a,Range(10))

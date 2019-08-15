@@ -2,6 +2,7 @@ local comb = require('combenum')
 local number = require('number')
 local gcd = number.gcd
 local isInteger = number.isInteger
+local floor = math.floor
 
 local guacyra = {}
 
@@ -95,10 +96,13 @@ local function makeExp(h,...)
     h = blankType(h)
     t[0] = h
   end
-  if h == Rational and isInteger(t[1]) and isInteger(t[2]) then
+  if h == Rational then
+    if not isInteger(t[1]) or not isInteger(t[2]) then
+      error('Ill-formed Rational')
+    end
 		local d = gcd(t[1],t[2])
-		t[1] = t[1]/d
-		t[2] = t[2]/d
+		t[1] = floor(t[1]/d) -- lua 5.3
+		t[2] = floor(t[2]/d)
 		if t[2]<0 then 
 	  	t[2]=-t[2]
 			t[1]=-t[1]

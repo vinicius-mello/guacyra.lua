@@ -32,7 +32,7 @@ local function fmodpow(bse, exp, mod)
       prod = prod * bse % mod
     end
     exp = floor(exp / 2)
-    bse = (bse ^ 2) % mod
+    bse = (bse * bse) % mod
   end
   return prod
 end
