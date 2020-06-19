@@ -1,3 +1,4 @@
+.lua-format
 # Compiled Lua sources
 luac.out
 
