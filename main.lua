@@ -27,5 +27,5 @@ test()
 guacyra.debug.io = true
 guacyra.debug.eval = true
 guacyra.wrap(function() 
-  In[1] = LaTeX(Expand((Sqrt(8)+x)^2))
+  In[1] = LaTeX(Rational(28,15)^Rational(2,3))
 end)

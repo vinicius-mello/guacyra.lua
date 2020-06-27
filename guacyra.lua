@@ -437,6 +437,102 @@ guacyra.Times = Times
 local Power = Symbol('Power')
 guacyra.Power = Power
 
+local function isNumeric(e)
+  return e[0] == Number or e[0] == Rational
+end
+
+local function numericValue(e)
+  if e[0] == Number then 
+    return e[1]
+  elseif e[0] == Rational then
+    return e[1] / e[2]
+  end
+end
+
+-- Joel S. Cohen, Computer Algebra and Symbolic Computation: Mathematical Methods 
+local function comp(u, v)
+  -- O1
+  if isNumeric(u) and isNumeric(v) then
+    return numericValue(u) < numericValue(v) 
+  end
+  -- O2
+  if isSymbol(u) and isSymbol(v) then
+    return u[1] < v[1]
+  end
+  -- O3
+  if (u[0] == Plus and v[0] == Plus)
+  or (u[0] == Times and v[0] == Times) then
+    local m = #u
+    local n = #v
+    while m > 0 and n > 0 do
+      if equal(u[m], v[n]) then
+        m = m - 1
+        n = n - 1
+      else
+        return comp(u[m], v[n])
+      end
+    end
+    return m < n
+  end
+  -- O4
+  if u[0] == Power and v[0] == Power then
+    if equal(u[1], v[1]) then
+      return comp(u[2], v[2])
+    else
+      return comp(u[1], v[1])
+    end
+  end
+  -- O6
+  if u[0] == v[0] then
+    local m = #u
+    local n = #v
+    local i = 1
+    while i <= m and i <= n do
+      if equal(u[i], v[i]) then
+        i = i + 1
+      else
+        return comp(u[i], v[i])
+      end
+    end
+    return m < n
+  end
+  -- O7
+  if isNumeric(u) and not isNumeric(v) then
+    return true
+  elseif not isNumeric(u) and isNumeric(v) then
+    return false
+  end
+  -- O8
+  if u[0] == Times then 
+    return comp(u, Times(v))
+  elseif v[0] == Times then
+    return comp(Times(u), v)
+  end
+  -- O9
+  if u[0] == Power then 
+    return comp(u, Power(v, 1))
+  elseif v[0] == Power then
+    return comp(Power(u, 1), v)
+  end
+  -- O10
+  if u[0] == Plus then 
+    return comp(u, Plus(v))
+  elseif v[0] == Plus then
+    return comp(Plus(u), v)
+  end
+  -- O12
+  if isSymbol(v) and equal(u[0], v) then
+    return false
+  elseif isSymbol(u) and equal(u, v[0]) then
+    return true
+  end 
+  if u[0] == String and v[0] == String then
+    return u[1] < v[1]
+  end
+  -- Catch all
+  return tostring(u) < tostring(v)
+end
+
 local function lessTree(ea, eb)
   local function ty(e)
     if isAtom(e) then
@@ -473,7 +569,7 @@ local function lessTree(ea, eb)
   end
   return false
 end
-guacyra.less = lessTree
+guacyra.less = comp -- lessTree
 
 guacyra.__index = guacyra
 
@@ -767,7 +863,7 @@ local function evalR(e)
     end
   end
   if guacyra.debug.sort then print('sort:\t', e) end
-  if head.orderless then table.sort(ex, lessTree) end
+  if head.orderless then table.sort(ex, guacyra.less) end
   local tex
   for i = 1, #ex do
     local uphead = ex[i][0]
@@ -954,7 +1050,14 @@ guacyra.wrap(function()
       return Plus(Number((a[1] * p[2] + p[1]) / p[2]), c)
     end
   end)
-  In[6] = SetDelayed(Plus(p_(Rational), q_(Rational), c___), function()
+  In[6] = SetDelayed(Plus(p_(Rational), a_(Number), c___), function()
+    if isInteger(a[1]) then
+      return Plus(Rational(a[1] * p[2] + p[1], p[2]), c)
+    else
+      return Plus(Number((a[1] * p[2] + p[1]) / p[2]), c)
+    end
+  end)
+  In[7] = SetDelayed(Plus(p_(Rational), q_(Rational), c___), function()
     return Plus(Rational(p[1] * q[2] + q[1] * p[2], p[2] * q[2]), c)
   end)
 end)
@@ -975,10 +1078,17 @@ guacyra.wrap(function()
       return Times(Number(a[1] * p[1] / p[2]), c)
     end
   end)
-  In[7] = SetDelayed(Times(p_(Rational), q_(Rational), c___), function()
+  In[7] = SetDelayed(Times(p_(Rational), a_(Number), c___), function()
+    if isInteger(a[1]) then
+      return Times(Rational(a[1] * p[1], p[2]), c)
+    else
+      return Times(Number(a[1] * p[1] / p[2]), c)
+    end
+  end)
+  In[8] = SetDelayed(Times(p_(Rational), q_(Rational), c___), function()
     return Times(Rational(p[1] * q[1], p[2] * q[2]), c)
   end)
-  In[8] = SetDelayed(Times(-1, Plus(a__)), function()
+  In[9] = SetDelayed(Times(-1, Plus(a__)), function()
     local r = Plus()
     for i = 1, #a do r[i] = Times(-1, a[i]) end
     return r
@@ -1320,6 +1430,12 @@ guacyra.wrap(function ()
   end)
   In[9] = SetDelayed(LaTeX(a_), function()
     return String(a:tostring())
+  end)
+  guacyra.LuaTeX = LuaTeX
+  In[10] = SetDelayed(LuaTeX(a_), function()
+    local l = LaTeX(a):eval()
+    print(string.sub(l[1],1,-1))
+    return l
   end)
 end)
 
