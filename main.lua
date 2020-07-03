@@ -24,8 +24,15 @@ function test()
 end
 test()
 ]]
+
 guacyra.debug.io = true
 guacyra.debug.eval = true
 guacyra.wrap(function() 
+  local function NumericQ(ex)
+    print("ex:   ", Boolean(ex[0] == Rational or ex[0] == Number))
+    return Boolean(ex[0] == Rational or ex[0] == Number)
+  end
   In[1] = LaTeX(Rational(28,15)^Rational(2,3))
+  In[2] = SetDelayed(Test(a_(NumericQ)), a + 1)
+  In[3] = Test(Number(1))
 end)

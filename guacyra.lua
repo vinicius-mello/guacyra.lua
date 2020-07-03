@@ -219,6 +219,9 @@ guacyra.isSymbol = isSymbol
 
 local function isBlankSymbol(e) return isSymbol(e) and e[1]:sub(-1) == '_' end
 
+local function isFunction(e) return isObject(e) and e[0] == Function end
+guacyra.isFunction = isFunction
+
 guacyra.Symbol = Symbol
 guacyra.Number = Number
 guacyra.Rational = Rational
@@ -261,7 +264,9 @@ local function makeExp(h, ...)
     end
   end
   if #t == 1 and isBlankSymbol(h) and
-    (isSymbol(t[1]) and not isBlankSymbol(t[1])) then return blankType(h, t[1]) end
+    ((isSymbol(t[1]) and not isBlankSymbol(t[1])) or isFunction(t[1]) or type(t[1])=='function') then
+      return blankType(h, t[1])
+    end
   if isBlankSymbol(h) then
     h = blankType(h)
     t[0] = h
@@ -329,6 +334,12 @@ BlankSequence = Symbol('BlankSequence')
 guacyra.BlankSequence = BlankSequence
 BlankNullSequence = Symbol('BlankNullSequence')
 guacyra.BlankNullSequence = BlankNullSequence
+local True = Boolean(true)
+guacyra.True = True
+local False = Boolean(false)
+guacyra.False = False
+local Undefined = Symbol("Undefined")
+guacyra.Undefined = Undefined
 
 tostr = function(e)
   if not isObject(e) then return tostring(e) end
@@ -533,43 +544,7 @@ local function comp(u, v)
   return tostring(u) < tostring(v)
 end
 
-local function lessTree(ea, eb)
-  local function ty(e)
-    if isAtom(e) then
-      return 1
-    else
-      return 2
-    end
-  end
-  local ta = ty(ea)
-  local tb = ty(eb)
-  if ta < tb then return true end
-  if tb < ta then return false end
-  if ta == 1 then
-    if ea[0] == eb[0] then
-      if ea[0] == String or ea[0] == Number then
-        return ea[1] < eb[1]
-      elseif ea[0] == Rational then
-        return ea[1] / ea[2] < eb[1] / eb[2]
-      else
-        return tostring(ea[1]) < tostring(eb[1])
-      end
-    else
-      return atomOrder[ea[0]] < atomOrder[eb[0]]
-    end
-  end
-  if #ea < #eb then return true end
-  if #eb < #ea then return false end
-  for i = 0, #ea do
-    if lessTree(ea[i], eb[i]) then
-      return true
-    elseif lessTree(eb[i], ea[i]) then
-      return false
-    end
-  end
-  return false
-end
-guacyra.less = comp -- lessTree
+guacyra.less = comp
 
 guacyra.__index = guacyra
 
@@ -767,7 +742,13 @@ local function matchR(ex, pat, cap)
   if pat[0] == Blank then
     local name = pat[1][1]
     local head = pat[2]
-    if head ~= nil and not equal(ex[0], head) then return false end
+    if head ~= nil then
+      if isFunction(head) and not (head[1](ex))[1] then
+        return false
+      elseif isSymbol(head) and not equal(ex[0], head) then
+        return false
+      end
+    end
     if name == '' then return true end
     local en = rawget(cap, name)
     if en ~= nil then
@@ -787,7 +768,13 @@ local function matchR(ex, pat, cap)
       local exr = Sequence()
       for j = i, #ex do
         exr[#exr + 1] = ex[j]
-        if head and not equal(ex[j][0], head) then return false end
+        if head ~= nil then
+          if isFunction(head) and not (head[1](ex[j]))[1] then
+            return false
+          elseif isSymbol(head) and not equal(ex[j][0], head) then
+            return false
+          end
+        end
       end
       if name == '' then return true end
       local en = rawget(cap, name)
