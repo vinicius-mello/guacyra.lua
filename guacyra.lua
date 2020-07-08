@@ -64,7 +64,7 @@ local function isInteger(a) return type(a) == 'number' and a == floor(a) end
 local function binomial(n, k)
   if k > n then return nil end
   if k > n / 2 then k = n - k end
-  numer, denom = 1, 1
+  local numer, denom = 1, 1
   for i = 1, k do
     numer = numer * (n - i + 1)
     denom = denom * i
@@ -338,14 +338,14 @@ local True = Boolean(true)
 guacyra.True = True
 local False = Boolean(false)
 guacyra.False = False
-local Undefined = Symbol("Undefined")
-guacyra.Undefined = Undefined
+local Indeterminate = Symbol("Indeterminate")
+guacyra.Indeterminate = Indeterminate
 
 tostr = function(e)
   if not isObject(e) then return tostring(e) end
   if isAtom(e) then
     if e[0] == Symbol then return e[1] end
-    if e[0] == String then return '"' .. e[1] .. '"' end
+    if e[0] == String then return e[1] end
     if e[0] == Number then return '' .. e[1] end
     if e[0] == Rational then return '' .. e[1] .. '/' .. e[2] end
     if e[0] == Boolean then
@@ -355,7 +355,9 @@ tostr = function(e)
         return 'False'
       end
     end
-    if e[0] == Function then return tostring(e[1]) end
+    if e[0] == Function then
+      return e.name or tostring(e[1])
+    end
   end
   if e[0] == Blank then
     if e[2] then
@@ -432,14 +434,21 @@ local function length(ex)
 end
 guacyra.length = length
 
-local atomOrder = {
-  [Number] = 1,
-  [Rational] = 2,
-  [String] = 3,
-  [Symbol] = 4,
-  [Boolean] = 5,
-  [Function] = 6
-}
+local function has(ex, subex)
+  if isAtom(ex) then
+    return equal(ex, subex)
+  end
+  if equal(ex, subex) then
+    return true
+  else
+    for i=1, #ex do
+      if has(ex[i], subex) then
+        return true
+      end
+    end
+    return false
+  end
+end
 
 local Plus = Symbol('Plus')
 guacyra.Plus = Plus
@@ -453,18 +462,18 @@ local function isNumeric(e)
 end
 
 local function numericValue(e)
-  if e[0] == Number then 
+  if e[0] == Number then
     return e[1]
   elseif e[0] == Rational then
     return e[1] / e[2]
   end
 end
 
--- Joel S. Cohen, Computer Algebra and Symbolic Computation: Mathematical Methods 
+-- Joel S. Cohen, Computer Algebra and Symbolic Computation: Mathematical Methods
 local function comp(u, v)
   -- O1
   if isNumeric(u) and isNumeric(v) then
-    return numericValue(u) < numericValue(v) 
+    return numericValue(u) < numericValue(v)
   end
   -- O2
   if isSymbol(u) and isSymbol(v) then
@@ -514,19 +523,19 @@ local function comp(u, v)
     return false
   end
   -- O8
-  if u[0] == Times then 
+  if u[0] == Times then
     return comp(u, Times(v))
   elseif v[0] == Times then
     return comp(Times(u), v)
   end
   -- O9
-  if u[0] == Power then 
+  if u[0] == Power then
     return comp(u, Power(v, 1))
   elseif v[0] == Power then
     return comp(Power(u, 1), v)
   end
   -- O10
-  if u[0] == Plus then 
+  if u[0] == Plus then
     return comp(u, Plus(v))
   elseif v[0] == Plus then
     return comp(Plus(u), v)
@@ -536,7 +545,7 @@ local function comp(u, v)
     return false
   elseif isSymbol(u) and equal(u, v[0]) then
     return true
-  end 
+  end
   if u[0] == String and v[0] == String then
     return u[1] < v[1]
   end
@@ -611,8 +620,6 @@ local function unionDelta(sub, th)
   end
   return thr
 end
-
-local function printSub(d) for k, v in pairs(d) do print('\t', k, v) end end
 
 -- Adapted from "Non-linear Associative-Commutative Many-to-One
 -- Pattern Matching with Sequence Variables"
@@ -913,6 +920,7 @@ local function wrap(fu, symbols)
 end
 guacyra.wrap = wrap
 
+--luacheck: globals SetDelayed
 guacyra.wrap(function()
   guacyra.SetDelayed = SetDelayed
   SetDelayed.holdAll = true
@@ -1020,6 +1028,21 @@ guacyra.__unm = function(a) return Times(-1, a) end
 guacyra.__mul = function(a, b) return Times(a, b) end
 guacyra.__div = function(a, b) return Times(a, Power(b, -1)) end
 guacyra.__pow = function(a, b) return Power(a, b) end
+
+guacyra.MemberQ = Function(function(ex, subex)
+  return Boolean(has(ex, subex))
+end)
+guacyra.MemberQ.name = 'MemberQ'
+
+guacyra.NumericQ = Function(function(ex)
+  return Boolean(ex[0] == Rational or ex[0] == Number)
+end)
+guacyra.NumericQ.name = 'NumericQ'
+
+guacyra.IntegerQ = Function(function(ex)
+  return Boolean(ex[0] == Number and isInteger(ex[1]))
+end)
+guacyra.IntegerQ.name = 'IntegerQ'
 
 -- Algebra
 Plus.flat = true
@@ -1240,8 +1263,8 @@ guacyra.wrap(function()
     return Times(Power(Number(a[1]), p),
                  Power(Number(a[2]), Rational(-p[1], p[2])))
   end)
-  In[8] = SetDelayed(Power(Power(a_, b_), c_), function() return Power(a, b * c) end)
-  In[9] = SetDelayed(Power(Times(a__), e_), function()
+  In[8] = SetDelayed(Power(Power(a_, b_), c_(IntegerQ)), function() return Power(a, b * c) end)
+  In[9] = SetDelayed(Power(Times(a__), e_(IntegerQ)), function()
     local r = Times()
     for i = 1, #a do r[#r + 1] = Power(a[i], e) end
     return r
@@ -1321,7 +1344,7 @@ guacyra.wrap(function ()
       if not t[eis] then
         t[eis] = true
         den[#den+1] = ei
-      end 
+      end
     end
     for i=1,#e do
       local r = ((den:copy())*e[i][1]/e[i][2]):eval()
@@ -1364,9 +1387,9 @@ guacyra.wrap(function ()
   In[2] = SetDelayed(LaTeXP(a_), LaTeX(a))
   In[3] = SetDelayed(LaTeX(p_(Rational)), function()
     local a, b = p[1], p[2]
-    if a<0 then 
+    if a<0 then
       return String('-\\frac{'..(-a)..'}{'..b..'}')
-    else     
+    else
       return String('\\frac{'..(a)..'}{'..b..'}')
     end
   end)
@@ -1375,7 +1398,7 @@ guacyra.wrap(function ()
     local l = NumeratorDenominator(Times(a)):eval()
     if l[2][0]==Number then
       return Apply(Cat,Map(LaTeXP,List(a)))
-    else 
+    else
       local num = LaTeX(l[1]):eval()
       local den = LaTeX(l[2]):eval()
       return Cat('\\frac{',num,'}{',den,'}')
@@ -1390,12 +1413,12 @@ guacyra.wrap(function ()
       end
     else
       return Cat(LaTeXP(a),'^{', LaTeX(b), '}')
-    end 
+    end
   end)
   In[7] = SetDelayed(LaTeX(Power(a_, b_(Number))), function()
     if b[1]<0 then
       return Cat('\\frac{1}{',LaTeX(Power(a,-b[1])),'}')
-    else 
+    else
       b = ''..b[1]
       if #b>1 then
         return Cat(LaTeXP(a), '^{'..b..'}')
@@ -1404,7 +1427,13 @@ guacyra.wrap(function ()
       end
     end
   end)
-  In[8] = SetDelayed(LaTeX(Plus(c__)), function()
+  In[8] = SetDelayed(LaTeX(Power(a_(Symbol), b_)), function()
+    return Cat(a[1] .. '^{', LaTeX(b),'}')
+  end)
+  In[9] = SetDelayed(LaTeX(Power(a_, b_)), function()
+    return Cat(LaTeXP(a), '^{', LaTeX(b),'}')
+  end)
+  In[10] = SetDelayed(LaTeX(Plus(c__)), function()
     local s = ''
     for i=1,#c do
       local t = LaTeX(c[i]):eval()
@@ -1415,14 +1444,8 @@ guacyra.wrap(function ()
     end
     return String(s)
   end)
-  In[9] = SetDelayed(LaTeX(a_), function()
+  In[11] = SetDelayed(LaTeX(a_), function()
     return String(a:tostring())
-  end)
-  guacyra.LuaTeX = LuaTeX
-  In[10] = SetDelayed(LuaTeX(a_), function()
-    local l = LaTeX(a):eval()
-    print(string.sub(l[1],1,-1))
-    return l
   end)
 end)
 

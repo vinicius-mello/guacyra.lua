@@ -26,13 +26,14 @@ test()
 ]]
 
 guacyra.debug.io = true
-guacyra.debug.eval = true
-guacyra.wrap(function() 
-  local function NumericQ(ex)
-    print("ex:   ", Boolean(ex[0] == Rational or ex[0] == Number))
-    return Boolean(ex[0] == Rational or ex[0] == Number)
-  end
-  In[1] = LaTeX(Rational(28,15)^Rational(2,3))
-  In[2] = SetDelayed(Test(a_(NumericQ)), a + 1)
-  In[3] = Test(Number(1))
+--guacyra.debug.eval = true
+guacyra.wrap(function()
+  In[#In+1] = LaTeX(Rational(28,15)^Rational(2,3))
+  In[#In+1] = SetDelayed(Test(a_(NumericQ)), a + 1)
+  In[#In+1] = Test(1)
+  In[#In+1] = Test(Rational(1,2))
+  In[#In+1] = Test(x)
+  In[#In+1] = IntegerQ(Sqrt(2)^2)
+  In[#In+1] = LaTeX((x+1)^Rational(1,2)^Rational(1,2)^4)
+  In[#In+1] = MemberQ(1+x^2+y^3, z)
 end)
