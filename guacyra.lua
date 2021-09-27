@@ -161,7 +161,6 @@ guacyra.String = String
 guacyra.Boolean = Boolean
 guacyra.Function = Function
 
-guacyra.debug = {}
 -- lua 5.3 workaround
 local unpack = unpack or table.unpack
 
@@ -622,7 +621,6 @@ local function sort(e)
 end
 
 local function evalR(e)
-  if guacyra.debug.eval then print('eval:\t', e) end
   if isAtom(e) then return e end
   local head = evalR(e[0])
   local ex = head()
@@ -666,7 +664,6 @@ local function evalR(e)
       end
     end
   end
-  if guacyra.debug.sort then print('sort:\t', e) end
   if lh.orderless then table.sort(ex, guacyra.less) end
   local tex
   for i = 1, #ex do
@@ -1544,7 +1541,14 @@ function(f, x)
   return Cat(LaTeX(f), "{'}(", LaTeX(x),')')
 end, Derivative)
 
---local x, a, b = Symbols('x a b')
---print('Teste\n')
---local exp = Diff(3*a(x)^2,x)
---print(LaTeX(exp):eval())
+guacyra.import = function()
+  for k,v in pairs(guacyra) do
+    if isObject(v) then
+      _G[k] = v
+    end 
+  end
+  _G['Symbols'] = Symbols
+  _G['Rule'] = Rule
+end
+
+return guacyra

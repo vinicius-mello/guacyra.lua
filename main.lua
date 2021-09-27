@@ -1,39 +1,10 @@
 local guacyra = require('guacyra')
---[[local algebra = require('algebra')
-local list = require('list')
-local latex = require('latex')
-guacyra.importSymbols(guacyra)
-guacyra.importSymbols(algebra)
-guacyra.importSymbols(latex)
-guacyra.importSymbols(list)
-local SymbEnv = require('symbenv').SymbEnv
---guacyra.debug.eval = false
-function test()
-  SymbEnv(true)
---[[  In[1] = Set(a,Range(10))
-  In[2] = Map(function(x) return x^2 end, a)
-  In[3] = NestList(function(x) return Together(1+1/x) end ,x,7)
-  In[4] = Map(LaTeX,Out[3])
-  In[5] = Set(x,4)
-  In[6] = Set(y,Power(Rational(9,2),Rational(-1,3)))
-  In[7] = LaTeX(y)
-  In[8] = SetDelayed(f(x_,y_),x^2+y)
-  In[9] = f(y,3)
-  In[1] = Set(y,(u+v)^2)
-  In[2] = LaTeX(y)
-end
-test()
-]]
+guacyra.import()
 
-guacyra.debug.io = true
---guacyra.debug.eval = true
-guacyra.wrap(function()
-  In[#In+1] = LaTeX(Rational(28,15)^Rational(2,3))
-  In[#In+1] = SetDelayed(Test(a_(NumericQ)), a + 1)
-  In[#In+1] = Test(1)
-  In[#In+1] = Test(Rational(1,2))
-  In[#In+1] = Test(x)
-  In[#In+1] = IntegerQ(Sqrt(2)^2)
-  In[#In+1] = LaTeX((x+1)^Rational(1,2)^Rational(1,2)^4)
-  In[#In+1] = MemberQ(1+x^2+y^3, z)
-end)
+print(LaTeX(Rational(28,15)^Rational(2,3)):eval())
+local Test, x, y = Symbols 'Test x y'
+Rule(Test(_{a=NumericQ}),
+function(a) return a + 1 end)
+print(Test(1):eval())
+print(Test(Rational(1,2)):eval())
+print(Test(x):eval())
