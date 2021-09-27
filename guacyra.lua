@@ -1,54 +1,3 @@
--- Enumeration
-local function weak_compositions(m, n)
-  local first = true
-  local it = function(v, i)
-    if first then
-      first = false
-      return v
-    end
-    if n == 0 or v[n] == m then return nil end
-    local r
-    for k = n - 1, 1, -1 do
-      r = k
-      if v[r] ~= 0 then break end
-    end
-    v[r] = v[r] - 1;
-    for j = r + 1, n do v[j] = 0 end
-    v[r + 1] = m
-    for j = 1, r do v[r + 1] = v[r + 1] - v[j] end
-    return v
-  end
-  local ini = {}
-  for i = 1, n do ini[i] = 0 end
-  if n > 0 then ini[1] = m end
-  return it, ini, ini
-end
-
-local function permutations(n)
-  local first = true
-  local it = function(v, k)
-    if first then
-      first = false
-      return v
-    end
-    local i = n
-    while i > 1 and v[i - 1] >= v[i] do i = i - 1 end
-    if (i == 1) then return nil end
-    local j = n
-    while v[j] <= v[i - 1] do j = j - 1 end
-    v[i - 1], v[j] = v[j], v[i - 1]
-    j = n
-    while i < j do
-      v[i], v[j] = v[j], v[i]
-      i = i + 1
-      j = j - 1
-    end
-    return v
-  end
-  local ini = {}
-  for i = 1, n do ini[i] = i end
-  return it, ini, ini
-end
 
 -- Number Theory
 local floor, infinite, random = math.floor, math.huge, math.random
@@ -198,32 +147,15 @@ local function makeAtom(s)
   return t
 end
 
-local Number = makeAtom('Number')
+local Integer = makeAtom('Integer')
 local Rational = makeAtom('Rational')
 local String = makeAtom('String')
 local Boolean = makeAtom('Boolean')
 local Function = makeAtom('Function')
 
-local function isObject(e) return getmetatable(e) == guacyra end
-
-local function isAtomHead(e)
-  return e == Symbol or e == Number or e == Rational or e == String or e ==
-           Boolean or e == Function
-end
-
-local function isAtom(e) return isObject(e) and isAtomHead(e[0]) end
-guacyra.isAtom = isAtom
-
-local function isSymbol(e) return isObject(e) and e[0] == Symbol end
-guacyra.isSymbol = isSymbol
-
-local function isBlankSymbol(e) return isSymbol(e) and e[1]:sub(-1) == '_' end
-
-local function isFunction(e) return isObject(e) and e[0] == Function end
-guacyra.isFunction = isFunction
-
+local List, _, __, ___
 guacyra.Symbol = Symbol
-guacyra.Number = Number
+guacyra.Integer = Integer
 guacyra.Rational = Rational
 guacyra.String = String
 guacyra.Boolean = Boolean
@@ -233,14 +165,57 @@ guacyra.debug = {}
 -- lua 5.3 workaround
 local unpack = unpack or table.unpack
 
-local List
-local Blank
-local BlankSequence
-local BlankNullSequence
+local function isObject(e)
+  return getmetatable(e) == guacyra
+end
 
-local tostr
+local function isAtomHead(e)
+  return e == Symbol or e == Integer or
+    e == Rational or e == String or
+    e == Boolean or e == Function
+end
 
-local function makeExp(h, ...)
+local function isAtom(e)
+  return isObject(e) and isAtomHead(e[0])
+end
+guacyra.isAtom = isAtom
+
+local function isSymbol(e)
+  return isObject(e) and e[0] == Symbol
+end
+guacyra.isSymbol = isSymbol
+
+local function isFunction(e)
+  return isObject(e) and e[0] == Function
+end
+guacyra.isFunction = isFunction
+local function lhead(e) 
+  if isSymbol(e) then
+    return e
+  else 
+    return lhead(e[0])
+  end
+end
+local makeExp
+
+local function conv(a)
+  if not isObject(a) then
+    if type(a) == 'number' then
+      a = Integer(floor(a))
+    elseif type(a) == 'string' then
+      a = String(a)
+    elseif type(a) == 'boolean' then
+      a = Boolean(a) 
+    elseif type(a) == 'table' then
+      a = makeExp(List, unpack(a))
+    elseif type(a) == 'function' then
+      a = Function(a)
+    end
+  end
+  return a
+end
+
+makeExp = function(h, ...)
   local t = {...}
   t[0] = h
   setmetatable(t, guacyra)
@@ -251,25 +226,6 @@ local function makeExp(h, ...)
     t.up = {}
     t.down = {}
     return t
-  end
-  local function blankType(b, h)
-    local bl = b
-    local bls = bl[1]
-    if bls:sub(-3) == '___' then
-      return BlankNullSequence(String(bls:sub(1, -4)), h)
-    elseif bls:sub(-2) == '__' then
-      return BlankSequence(String(bls:sub(1, -3)), h)
-    else
-      return Blank(String(bls:sub(1, -2)), h)
-    end
-  end
-  if #t == 1 and isBlankSymbol(h) and
-    ((isSymbol(t[1]) and not isBlankSymbol(t[1])) or isFunction(t[1]) or type(t[1])=='function') then
-      return blankType(h, t[1])
-    end
-  if isBlankSymbol(h) then
-    h = blankType(h)
-    t[0] = h
   end
   if h == Rational then
     if not isInteger(t[1]) or not isInteger(t[2]) then
@@ -283,45 +239,42 @@ local function makeExp(h, ...)
       t[1] = -t[1]
     end
     if t[2] == 1 then
-      t[0] = Number
+      t[0] = Integer
       t[2] = nil
     end
   end
-  if not isAtomHead(h) then
-    for i = 1, #t do
-      local a = t[i]
-      if isBlankSymbol(a) then
-        t[i] = blankType(a)
-      elseif getmetatable(a) ~= guacyra then
-        if type(a) == 'number' then
-          t[i] = Number(a)
-        elseif type(a) == 'string' then
-          t[i] = String(a)
-        elseif type(a) == 'table' then
-          t[i] = makeExp(List, unpack(a))
-        elseif type(a) == 'function' then
-          t[i] = Function(a)
-        elseif type(a) == 'boolean' then
-          t[i] = Boolean(a)
-        end
+  if (h==_ or h==__ or h==___)
+    and type(t[1])=='table' and not isObject(t[1]) then
+    local key = ''
+    local type = _
+    for k,v in pairs(t[1]) do
+      if isSymbol(v) or isFunction(v) then
+        key = k
+        type = v
       end
     end
-  else
-    -- TODO typecheck
+    t[1]=String(key)
+    if type ~= _ then
+      t[2] = type
+    end
+    return t
+  end
+  if not isAtomHead(h) then
     for i = 1, #t do
-      if isObject(t[i]) then
-        print(t[i])
-        error('Ill-formed atom: ' .. tostr(h) .. '(...,' .. tostr(t[i]) ..
-                ',...)')
-      end
+      t[i] = conv(t[i])
     end
   end
   return t
 end
-
 guacyra.__call = makeExp
 List = Symbol('List')
 guacyra.List = List
+_ = Symbol('_')
+guacyra._ = _
+__ = Symbol('__')
+guacyra.__ = __
+___ = Symbol('___')
+guacyra.___ = ___
 local Sequence = Symbol('Sequence')
 guacyra.Sequence = Sequence
 local Error = Symbol('Error')
@@ -329,15 +282,18 @@ guacyra.Error = Error
 local Null = Symbol('Null')
 guacyra.Null = Null
 Blank = Symbol('Blank')
-guacyra.Blank = Blank
-BlankSequence = Symbol('BlankSequence')
-guacyra.BlankSequence = BlankSequence
-BlankNullSequence = Symbol('BlankNullSequence')
-guacyra.BlankNullSequence = BlankNullSequence
 local True = Boolean(true)
 guacyra.True = True
 local False = Boolean(false)
 guacyra.False = False
+local function test(v) 
+  if isObject(v) and v[0]==Boolean then
+    return v[1]
+  end
+  return v
+end
+guacyra.test = test
+
 local Indeterminate = Symbol("Indeterminate")
 guacyra.Indeterminate = Indeterminate
 
@@ -346,7 +302,7 @@ tostr = function(e)
   if isAtom(e) then
     if e[0] == Symbol then return e[1] end
     if e[0] == String then return e[1] end
-    if e[0] == Number then return '' .. e[1] end
+    if e[0] == Integer then return '' .. e[1] end
     if e[0] == Rational then return '' .. e[1] .. '/' .. e[2] end
     if e[0] == Boolean then
       if e[1] then
@@ -359,21 +315,21 @@ tostr = function(e)
       return e.name or tostring(e[1])
     end
   end
-  if e[0] == Blank then
+  if e[0] == _ then
     if e[2] then
       return e[1][1] .. '_' .. tostr(e[2])
     else
       return e[1][1] .. '_'
     end
   end
-  if e[0] == BlankSequence then
+  if e[0] == __ then
     if e[2] then
       return e[1][1] .. '__' .. tostr(e[2])
     else
       return e[1][1] .. '__'
     end
   end
-  if e[0] == BlankNullSequence then
+  if e[0] == ___ then
     if e[2] then
       return e[1][1] .. '___' .. tostr(e[2])
     else
@@ -410,7 +366,7 @@ local function copy(ex)
 end
 guacyra.copy = copy
 
-local function equal(ea, eb)
+local function equalR(ea, eb)
   local sa = #ea
   local sb = #eb
   if sa ~= sb then return false end
@@ -419,20 +375,15 @@ local function equal(ea, eb)
     return true
   end
   if not isAtom(ea) and not isAtom(eb) then
-    for i = 0, #ea do if not equal(ea[i], eb[i]) then return false end end
+    for i = 0, #ea do if not equalR(ea[i], eb[i]) then return false end end
     return true
   end
   return false
 end
-guacyra.equal = equal
-
-local function length(ex)
-  if isAtom(ex) then return 1 end
-  local s = 0
-  for i = 1, #ex do s = s + length(ex[i]) end
-  return s
+local function equal(ea, eb)
+  return equalR(ea, conv(eb))
 end
-guacyra.length = length
+guacyra.equal = equal
 
 local function has(ex, subex)
   if isAtom(ex) then
@@ -458,11 +409,11 @@ local Power = Symbol('Power')
 guacyra.Power = Power
 
 local function isNumeric(e)
-  return e[0] == Number or e[0] == Rational
+  return e[0] == Integer or e[0] == Rational
 end
 
 local function numericValue(e)
-  if e[0] == Number then
+  if e[0] == Integer then
     return e[1]
   elseif e[0] == Rational then
     return e[1] / e[2]
@@ -470,7 +421,7 @@ local function numericValue(e)
 end
 
 -- Joel S. Cohen, Computer Algebra and Symbolic Computation: Mathematical Methods
-local function comp(u, v)
+local function less(u, v)
   -- O1
   if isNumeric(u) and isNumeric(v) then
     return numericValue(u) < numericValue(v)
@@ -489,7 +440,7 @@ local function comp(u, v)
         m = m - 1
         n = n - 1
       else
-        return comp(u[m], v[n])
+        return less(u[m], v[n])
       end
     end
     return m < n
@@ -497,9 +448,9 @@ local function comp(u, v)
   -- O4
   if u[0] == Power and v[0] == Power then
     if equal(u[1], v[1]) then
-      return comp(u[2], v[2])
+      return less(u[2], v[2])
     else
-      return comp(u[1], v[1])
+      return less(u[1], v[1])
     end
   end
   -- O6
@@ -511,7 +462,7 @@ local function comp(u, v)
       if equal(u[i], v[i]) then
         i = i + 1
       else
-        return comp(u[i], v[i])
+        return less(u[i], v[i])
       end
     end
     return m < n
@@ -524,21 +475,21 @@ local function comp(u, v)
   end
   -- O8
   if u[0] == Times then
-    return comp(u, Times(v))
+    return less(u, Times(v))
   elseif v[0] == Times then
-    return comp(Times(u), v)
+    return less(Times(u), v)
   end
   -- O9
   if u[0] == Power then
-    return comp(u, Power(v, 1))
+    return less(u, Power(v, 1))
   elseif v[0] == Power then
-    return comp(Power(u, 1), v)
+    return less(Power(u, 1), v)
   end
   -- O10
   if u[0] == Plus then
-    return comp(u, Plus(v))
+    return less(u, Plus(v))
   elseif v[0] == Plus then
-    return comp(Plus(u), v)
+    return less(Plus(u), v)
   end
   -- O12
   if isSymbol(v) and equal(u[0], v) then
@@ -553,41 +504,15 @@ local function comp(u, v)
   return tostring(u) < tostring(v)
 end
 
-guacyra.less = comp
+guacyra.less = less
 
 guacyra.__index = guacyra
-
--- lua 5.2 workaround
-local setfenv = setfenv or function(f, t)
-  f = (type(f) == 'function' and f or debug.getinfo(f + 1, 'f').func)
-  local name
-  local up = 0
-  repeat
-    up = up + 1
-    name = debug.getupvalue(f, up)
-  until name == '_ENV' or name == nil
-  if name then
-    debug.upvaluejoin(f, up, function() return name end, 1) -- use unique upvalue
-    debug.setupvalue(f, up, t)
-  end
-end
-guacyra.setfenv = setfenv
-
-getfenv = getfenv or function(f)
-  f = (type(f) == 'function' and f or debug.getinfo(f + 1, 'f').func)
-  local name, val
-  local up = 0
-  repeat
-    up = up + 1
-    name, val = debug.getupvalue(f, up)
-  until name == '_ENV' or name == nil
-  return val
-end
 
 local function subst(ex, sub)
   if isAtom(ex) then
     if ex[0] == Symbol and sub[ex[1]] ~= nil then
-      return copy(sub[ex[1]])
+      local a = conv(sub[ex[1]])
+      return copy(a)
     else
       return ex
     end
@@ -600,157 +525,13 @@ local function subst(ex, sub)
 end
 guacyra.subst = subst
 
-local function delta(sub1, sub2)
-  for k, v1 in pairs(sub1) do
-    local v2 = sub2[k]
-    if v2 ~= nil then if not equal(v1, v2) then return false end end
-  end
-  return true
-end
-
-local function unionDelta(sub, th)
-  local thr = {}
-  for i = 1, #th do
-    if delta(sub, th[i]) then
-      local subi = {}
-      for k, v in pairs(sub) do subi[k] = v end
-      for k, v in pairs(th[i]) do subi[k] = v end
-      thr[#thr + 1] = subi
-    end
-  end
-  return thr
-end
-
--- Adapted from "Non-linear Associative-Commutative Many-to-One
--- Pattern Matching with Sequence Variables"
--- by Manuel Krebber
-local matchOneToOne
-local function matchSequence(s, p, fa, comu, th)
-  local n = #s
-  local m = #p
-  local nstar = 0
-  for i = 1, m do if p[i][0] == BlankNullSequence then nstar = nstar + 1 end end
-  if m - nstar > n then return {} end
-  local nplus = 0
-  for i = 1, m do if p[i][0] == BlankSequence then nplus = nplus + 1 end end
-  if fa ~= nil then
-    for i = 1, m do if p[i][0] == Blank then nplus = nplus + 1 end end
-  end
-  local nfree = n - m + nstar
-  local nseq = nstar + nplus
-  local thr = {}
-  if nseq == 0 and nfree > 0 then return thr end
-  for perm in permutations(n) do
-    for k in weak_compositions(nfree, nseq) do
-      local i = 1
-      local j = 1
-      local thprime = {}
-      for ti = 1, #th do
-        local subprime = {}
-        for key, v in pairs(th[ti]) do subprime[key] = v end
-        thprime[#thprime + 1] = subprime
-      end
-      for l = 1, m do
-        local lsub = 1
-        local hl = p[l][0]
-        if hl == BlankNullSequence or hl == BlankSequence or
-          (hl == Blank and fa ~= nil) then
-          lsub = lsub + k[j]
-          if hl == BlankNullSequence then lsub = lsub - 1 end
-          j = j + 1
-        end
-        local sprime = Sequence()
-        for si = i, i + lsub - 1 do sprime[#sprime + 1] = s[perm[si]] end
-        thprime = matchOneToOne(sprime, p[l], fa, thprime)
-        if #thprime == 0 then break end
-        i = i + lsub
-      end
-      for ti = 1, #thprime do thr[#thr + 1] = thprime[ti] end
-    end
-    if not comu then break end
-  end
-  return thr
-end
-
-matchOneToOne = function(s, p, fa, th)
-  local n = #s
-  local hp = p[0]
-  if hp == Blank and fa == nil then
-    local subprime = {}
-    local name = p[1][1]
-    if name ~= '' then subprime[name] = s[1] end
-    if n == 1 then
-      if p[2] == nil or (p[2] == s[1][0]) then
-        return unionDelta(subprime, th)
-      end
-    end
-  elseif hp == Blank or hp == BlankSequence or hp == BlankNullSequence then
-    local subprime = {}
-    local name = p[1][1]
-    local head = p[2]
-    if hp == Blank and fa ~= nil then
-      if name ~= '' then
-        if #s > 1 then
-          subprime[name] = fa(s)
-        else
-          subprime[name] = s[1]
-        end
-      end
-    else
-      if name ~= '' then subprime[name] = s end
-    end
-    local flag = true
-    if head then
-      for i = 1, #s do
-        if not equal(s[i][0], head) then
-          flag = false
-          break
-        end
-      end
-    end
-    if flag and (hp == BlankNullSequence or n >= 1) then
-      return unionDelta(subprime, th)
-    end
-  elseif isAtom(p) then
-    if n == 1 and equal(s[1], p) then return th end
-  elseif n == 1 then
-    local hs = s[1][0]
-    if equal(hp, hs) or hp == Blank then
-      local sp = p:copy()
-      sp[0] = Sequence
-      local sq = s[1]:copy()
-      sq[0] = Sequence
-      local faprime
-      if hp.flat then
-        faprime = hp
-      else
-        faprime = nil
-      end
-      th = matchSequence(sq, sp, faprime, hp.orderless, th)
-      if hp == Blank then
-        local subh = {}
-        local name = p[1][1]
-        if name ~= '' then subh[name] = hs end
-        return unionDelta(subh, th)
-      else
-        return th
-      end
-    end
-  end
-  return {}
-end
-
-guacyra.matches = function(ex, pat)
-  return matchOneToOne(Sequence(ex), pat, nil, {{}})
-end
-
 local function matchR(ex, pat, cap)
   if isAtom(pat) then return equal(pat, ex) end
-  if pat[0] == Blank then
+  if pat[0] == _ then
     local name = pat[1][1]
     local head = pat[2]
     if head ~= nil then
-      if isFunction(head) and not (head[1](ex))[1] then
+      if isFunction(head) and not test(head[1](ex)) then
         return false
       elseif isSymbol(head) and not equal(ex[0], head) then
         return false
@@ -766,17 +547,17 @@ local function matchR(ex, pat, cap)
     end
   end
   for i = 0, #pat do
-    if (pat[i][0] == BlankNullSequence or pat[i][0] == BlankSequence) and i ~=
+    if (pat[i][0] == ___ or pat[i][0] == __) and i ~=
       #pat then error('Blank sequence must be the last part: ' .. tostr(pat)) end
-    if pat[i][0] == BlankNullSequence or
-      (pat[i][0] == BlankSequence and i <= #ex) then
+    if pat[i][0] == ___ or
+      (pat[i][0] == __ and i <= #ex) then
       local name = pat[i][1][1]
       local head = pat[i][2]
       local exr = Sequence()
       for j = i, #ex do
         exr[#exr + 1] = ex[j]
         if head ~= nil then
-          if isFunction(head) and not (head[1](ex[j]))[1] then
+          if isFunction(head) and not test(head[1](ex[j])) then
             return false
           elseif isSymbol(head) and not equal(ex[j][0], head) then
             return false
@@ -805,15 +586,43 @@ guacyra.match = function(exp, pat, cap)
   return ret
 end
 
-local function evalR(e)
-  if guacyra.debug.eval then print('eval:\t', e) end
-  if e[0] == Symbol then
-    if e.value then
-      return evalR(e.value)
-    else
-      return e
+local function flatten(e)
+  if isAtom(e) then return e end
+  for i=1,#e do
+    e[i] = flatten(e[i])
+  end
+  local head = e[0]
+  if isSymbol(head) and head.flat then
+    local i = 1
+    while i <= #e do
+      if equal(e[i][0], head) then
+        local ei = table.remove(e, i)
+        for j = 1, #ei do
+          table.insert(e, i + j - 1, ei[j])
+        end
+        i = i + #ei
+      else
+        i = i + 1
+      end
     end
   end
+  return e
+end
+
+local function sort(e)
+  if isAtom(e) then return e end
+  for i=1,#e do
+    e[i] = sort(e[i])
+  end
+  local head = e[0]
+  if isSymbol(head) and head.orderless then
+    table.sort(e, guacyra.less)
+  end
+  return e
+end
+
+local function evalR(e)
+  if guacyra.debug.eval then print('eval:\t', e) end
   if isAtom(e) then return e end
   local head = evalR(e[0])
   local ex = head()
@@ -821,18 +630,19 @@ local function evalR(e)
     for i = 1, #e do ex[i] = evalR(e[i]) end
     return evalR(head[1](unpack(ex)))
   end
-  if head.holdAll then
+  local lh = lhead(head)
+  if lh.holdAll then
     for i = 1, #e do ex[i] = e[i] end
   else
     for i = 1, #e do
-      if head.holdFirst and i == 1 then
+      if lh.holdFirst and i == 1 then
         ex[i] = e[i]
       else
         ex[i] = evalR(e[i])
       end
     end
   end
-  if not head.sequenceHold then
+  if not lh.sequenceHold then
     local i = 1
     while i <= #ex do
       if ex[i][0] == Sequence then
@@ -844,7 +654,7 @@ local function evalR(e)
       end
     end
   end
-  if head.flat then
+  if lh.flat then
     local i = 1
     while i <= #ex do
       if equal(ex[i][0], head) then
@@ -857,169 +667,220 @@ local function evalR(e)
     end
   end
   if guacyra.debug.sort then print('sort:\t', e) end
-  if head.orderless then table.sort(ex, guacyra.less) end
+  if lh.orderless then table.sort(ex, guacyra.less) end
   local tex
   for i = 1, #ex do
-    local uphead = ex[i][0]
-    if uphead[0] == Symbol and uphead.up then
+    local uphead = lhead(ex[i])
+    if uphead.up then
       for j = 1, #uphead.up do
         tex = uphead.up[j](ex)
         if tex then return evalR(tex) end
       end
     end
   end
-  if head[0] == Symbol and head.down then
-    for j = 1, #head.down do
-      tex = head.down[j](ex)
+  if lh.down then
+    for j = 1, #lh.down do
+      tex = lh.down[j](ex)
       if tex then return evalR(tex) end
     end
+    return ex
   end
-  return ex
 end
 
-local function eval(e) return evalR(copy(e)) end
+local function eval(e)
+  return evalR(flatten(copy(e)))
+end
 guacyra.eval = eval
 
-guacyra.addDown = function(ex, tr)
-  if ex[0] == Symbol then ex.down[#ex.down + 1] = tr end
+local function getArgs(fun)
+  local args = {}
+  local hook = debug.gethook()
+  local argHook = function( ... )
+    local info = debug.getinfo(3)
+    if 'pcall' ~= info.name then return end
+    for i = 1, math.huge do
+      local name, value = debug.getlocal(2, i)
+      if '(*temporary)' == name 
+        or '(temporary)' == name then
+        debug.sethook(hook)
+        error('')
+        return
+      end
+      table.insert(args,name)
+    end
+  end
+  debug.sethook(argHook, "c")
+  pcall(fun)
+  return args
 end
 
-guacyra.addUp = function(ex, tr)
-  if ex[0] == Symbol then ex.up[#ex.up + 1] = tr end
+local function Rule(pat, fu, sym)
+  local tab
+  if not sym then
+    sym = lhead(pat)
+    tab = sym.down
+  else
+    tab = sym.up
+  end
+  local args = getArgs(fu)
+  tab[#tab+1] = function(ex)
+    local cap = {}
+    if ex:match(pat, cap) then
+      local cargs = {}
+      for i=1,#args do cargs[#cargs+1] = cap[args[i]] end
+      return fu(unpack(cargs))
+    else
+      return nil
+    end
+  end
+end
+guacyra.Rule = Rule
+
+local function Symbols(vl, global) 
+  local vars = {}
+  for var in vl:gmatch("%S+") do
+    local sym = Symbol(var)
+    table.insert(vars, sym)
+    if global then
+      global[var] = sym
+    end
+  end
+  return unpack(vars)
 end
 
-local function wrap(fu, symbols)
-  local i = {}
-  local o = {}
-  symbols = symbols or {}
-  symbols.In = i
-  symbols.Out = o
-  local st = {}
-  st.__index = function(t, k)
-    local s = rawget(symbols, k) or rawget(guacyra, k) or rawget(_G, k)
-    if s == nil then
-      s = guacyra.Symbol(k)
-      symbols[k] = s
+local Equal, Less = 
+  Symbols('Equal Less', guacyra)
+Rule(Equal(_{a=_}, _{b=_}),
+function(a, b) return Boolean(equal(a, b)) end)
+Rule(Less(_{a=_}, _{b=_}),
+function(a, b) return Boolean(less(a, b)) end)
+
+local function apply(a, b)
+  setmetatable(b, guacyra)
+  b[0] = a
+  return b
+end
+local function map(a, b)
+  local r = {}
+  for i = 1, #b do
+    r[#r+1] = a(b[i]) end
+  return r
+end
+local function reduce(a, b)
+  local r = b[1]
+  for i = 2, #b do
+    r = a(r, b[i])
+  end
+  return r
+end
+local function reduce1(a, b, c)
+  local r = c
+  for i = 1, #b do
+    r = a(r, b[i])
+  end
+  return r
+end
+local function groupWith(a, b, g)
+  local r = {}
+  r = reduce1(
+  function(s, c)
+    if #s==0 then
+      s[1] = {c}
+    else 
+      local last = s[#s]
+      if b(c, last[1]) then
+        last[#last+1] = c
+      else
+        s[#s+1] = {c}
+      end 
     end
     return s
+  end, a, r)
+  if g then 
+    return map(g, r)
+  else 
+    return r
   end
-  local it = {}
-  it.__newindex = function(t, k, v)
-    if guacyra.debug.io then print('In[' .. k .. ']=', v) end
-    rawset(t, k, v)
-    o[k] = v:eval()
-    if guacyra.debug.io then print('Out[' .. k .. ']=', o[k]) end
-  end
-  setmetatable(i, it)
-  setmetatable(symbols, st)
-  local oldenv = getfenv(fu)
-  setfenv(fu, symbols)
-  local ret = fu()
-  setfenv(fu, oldenv)
-  return ret
 end
-guacyra.wrap = wrap
 
---luacheck: globals SetDelayed
-guacyra.wrap(function()
-  guacyra.SetDelayed = SetDelayed
-  SetDelayed.holdAll = true
-  SetDelayed:addDown(function(exp)
-    local cap = {}
-    if exp:match(SetDelayed(a_(Symbol), b_), cap) then
-      cap.a.value = cap.b
-      return cap.b
-    elseif exp:match(SetDelayed(f_(), v_(Function)), cap) then
-      local ve = cap.v[1]
-      cap.f:addDown(function(exp2) return wrap(ve) end)
-    elseif exp:match(SetDelayed(f_(p__), v_(Function)), cap) then
-      local fe = cap.p:copy()
-      fe[0] = cap.f
-      local ve = cap.v[1]
-      cap.f:addDown(function(exp2)
-        local cap2 = {}
-        local ret = exp2:match(fe, cap2)
-        if ret then return wrap(ve, cap2) end
-        return nil
-      end)
-      return Null
-    elseif exp:match(SetDelayed(f_(p__), v_), cap) then
-      local fe = cap.p:copy()
-      fe[0] = cap.f
-      local ve = cap.v
-      cap.f:addDown(function(exp2)
-        local cap2 = {}
-        local ret = exp2:match(fe, cap2)
-        if ret then return ve:subst(cap2) end
-        return nil
-      end)
-      return Null
-    end
-    return nil
-  end)
+local Map, Apply, First, Rest, Fold, Reduce, GroupWith = 
+  Symbols('Map Apply First Rest Fold Reduce GroupWith', guacyra)
+
+
+Rule(Map(_{a=_}, _{b=_}),
+function(a, b)
+  return  apply(b[0], map(a, b))
+end)
+Rule(Apply(_{a=_}, _{b=_}(___{c=_})),
+function(a, b, c)
+  return a(c)
+end)
+Rule(First(_{a=_}(_{b=_}, ___{c=_})),
+function(a, b, c)
+  return b
+end)
+Rule(Rest(_{a=_}(_{b=_}, ___{c=_})),
+function(a, b, c)
+  return a(c)
+end)
+Rule(Fold(_{a=_}, _{b=_}, _{c=_}),
+function(a, b, c)
+  local t = b
+  for i = 1, #c do
+    t = a(t, c[i]):eval() end
+  return t
+end)
+Rule(Reduce(_{a=_}, _{b=List}),
+function(a, b)
+  return reduce(
+    function(p, q) return a(p, q):eval() end, b)
+end)
+Rule(Reduce(_{a=_}, _{b=List}, _{c=_}),
+function(a, b, c)
+  return reduce1(
+    function(p, q) return a(p, q):eval() end, b, c)
+end)
+Rule(GroupWith(_{a=_}, _{b=_}),
+function(a, b)
+  local r = groupWith(a,
+    function(p, q) return test(b(p, q):eval()) end,
+    function(s) return apply(List, s) end)
+  return apply(List, s)
 end)
 
-guacyra.wrap(function()
-  guacyra.Apply = Apply
-  In[1] = SetDelayed(Apply(a_, b_(c___)), function() return a(c) end)
-  guacyra.Map = Map
-  In[2] = SetDelayed(Map(a_, b_(c___)), function()
-    for i = 1, #c do c[i] = a(c[i]) end
-    return b(c)
-  end)
-  guacyra.First = First
-  In[3] = SetDelayed(First(a_(b_, c___)), function() return b end)
-  guacyra.Rest = Rest
-  In[4] = SetDelayed(Rest(a_(b_, c___)), function() return a(c) end)
-  guacyra.Fold = Fold
-  In[5] = SetDelayed(Fold(a_, b_, c_), function()
-    local t = b
-    for i = 1, #c do t = a(t, c[i]):eval() end
-    return t
-  end)
-  guacyra.Cat = Cat
-  In[6] = SetDelayed(Cat(c___), function()
-    local t = ""
-    for i = 1, #c do
-      if isAtom(c[i]) and c[i][0] == String then
-        t = t .. (c[i][1])
-      else
-        t = t .. (c[i]:tostring())
-      end
+local Cat, Range, RandomInteger = 
+  Symbols('Cat Range RandomInteger', guacyra)
+Rule(Cat(___{c=_}),
+function(c)
+  local t = ""
+  for i = 1, #c do
+    if isAtom(c[i]) and c[i][0] == String then
+      t = t .. (c[i][1])
+    else
+      t = t .. (c[i]:tostring())
     end
-    return String(t)
-  end)
-  guacyra.Range = Range
-  In[7] = SetDelayed(Range(a_(Number), b_(Number)), function()
-    local t = List()
-    for i = a[1], b[1] do t[#t + 1] = Number(i) end
-    return t
-  end)
-  guacyra.RandomReal = RandomReal
-  In[8] = SetDelayed(RandomReal(), function() return Number(random()) end)
-  In[9] = SetDelayed(RandomReal({a_(Number), b_(Number)}),
-               function() return Number(a[1] + (b[1] - a[1]) * random()) end)
-  In[10] = SetDelayed(RandomReal({a_(Number), b_(Number)}, c_(Number)), function()
-    local l = List()
-    for i = 1, c[1] do l[i] = Number(a[1] + (b[1] - a[1]) * random()) end
-    return l
-  end)
-  guacyra.Rule = Rule
-  Rule.sequenceHold = true
-  guacyra.Matches = Matches
-  Matches.holdAll = true
-  In[11] = SetDelayed(Matches(p_,e_), function()
-    local res = e:matches(p)
-    local ret = List()
-    for i = 1, #res do
-      local l = List()
-      for k, v in pairs(res[i]) do
-        l[#l+1] = Rule(Symbol(k), v)
-      end
-      ret[#ret+1] = l
-    end
-    return ret
-  end)
+  end
+  return String(t)
+end)
+Rule(Range(_{a=Integer}, _{b=Integer}),
+function(a, b)
+  local t = List()
+  for i = a[1], b[1] do
+    t[#t+1] = Integer(i) end
+  return t
+end)
+Rule(RandomInteger({_{a=Integer}, _{b=Integer}}),
+function(a, b)
+  return Integer(random(a[1], b[1]))
+end)
+Rule(RandomInteger({_{a=Integer}, _{b=Integer}},
+  _{n=Integer}),
+function(a, b, n)
+  local t = List()
+  for i = 1, n[1] do
+    t[#t+1] = Integer(random(a[1], b[1]))
+  end
+  return t
 end)
 
 guacyra.__add = function(a, b) return Plus(a, b) end
@@ -1029,424 +890,661 @@ guacyra.__mul = function(a, b) return Times(a, b) end
 guacyra.__div = function(a, b) return Times(a, Power(b, -1)) end
 guacyra.__pow = function(a, b) return Power(a, b) end
 
-guacyra.MemberQ = Function(function(ex, subex)
-  return Boolean(has(ex, subex))
+local NumericQ = Function(
+function(ex)
+  return Boolean(isNumeric(ex))
 end)
-guacyra.MemberQ.name = 'MemberQ'
+guacyra.NumericQ = NumericQ
 
-guacyra.NumericQ = Function(function(ex)
-  return Boolean(ex[0] == Rational or ex[0] == Number)
-end)
-guacyra.NumericQ.name = 'NumericQ'
-
-guacyra.IntegerQ = Function(function(ex)
-  return Boolean(ex[0] == Number and isInteger(ex[1]))
-end)
-guacyra.IntegerQ.name = 'IntegerQ'
-
--- Algebra
 Plus.flat = true
 Plus.orderless = true
-guacyra.wrap(function()
-  In[1] = SetDelayed(Plus(), 0)
-  In[2] = SetDelayed(Plus(a_), a)
-  In[3] = SetDelayed(Plus(0, b__), Plus(b))
-  In[4] = SetDelayed(Plus(a_(Number), b_(Number), c___),
-               function() return Plus(Number(a[1] + b[1]), c) end)
-  In[5] = SetDelayed(Plus(a_(Number), p_(Rational), c___), function()
-    if isInteger(a[1]) then
-      return Plus(Rational(a[1] * p[2] + p[1], p[2]), c)
+Rule(Plus(),
+function() return Integer(0) end)
+Rule(Plus(_{a=_}),
+function(a) return a end)
+local function nplus(a, b)
+  if a[0]==Integer then
+    if b[0]==Integer then
+      return Integer(a[1]+b[1])
     else
-      return Plus(Number((a[1] * p[2] + p[1]) / p[2]), c)
+      return Rational(a[1]*b[2]+b[1], b[2])
     end
-  end)
-  In[6] = SetDelayed(Plus(p_(Rational), a_(Number), c___), function()
-    if isInteger(a[1]) then
-      return Plus(Rational(a[1] * p[2] + p[1], p[2]), c)
+  else
+    if b[0]==Integer then
+      return Rational(b[1]*a[2]+a[1], a[2])
     else
-      return Plus(Number((a[1] * p[2] + p[1]) / p[2]), c)
+      return Rational(a[1]*b[2]+b[1]*a[2], a[2]*b[2])
     end
-  end)
-  In[7] = SetDelayed(Plus(p_(Rational), q_(Rational), c___), function()
-    return Plus(Rational(p[1] * q[2] + q[1] * p[2], p[2] * q[2]), c)
-  end)
-end)
+  end
+end 
+local function ntimes(a, b)
+  if a[0]==Integer then
+    if b[0]==Integer then
+      return Integer(a[1]*b[1])
+    else
+      return Rational(a[1]*b[1], b[2])
+    end
+  else
+    if b[0]==Integer then
+      return Rational(b[1]*a[1], a[2])
+    else
+      return Rational(a[1]*b[1], a[2]*b[2])
+    end
+  end
+end 
 
 Times.flat = true
 Times.orderless = true
-guacyra.wrap(function()
-  In[1] = SetDelayed(Times(), 1)
-  In[2] = SetDelayed(Times(a_), a)
-  In[3] = SetDelayed(Times(1, b__), Times(b))
-  In[4] = SetDelayed(Times(0, b__), 0)
-  In[5] = SetDelayed(Times(a_(Number), b_(Number), c___),
-               function() return Times(Number(a[1] * b[1]), c) end)
-  In[6] = SetDelayed(Times(a_(Number), p_(Rational), c___), function()
-    if isInteger(a[1]) then
-      return Times(Rational(a[1] * p[1], p[2]), c)
-    else
-      return Times(Number(a[1] * p[1] / p[2]), c)
-    end
-  end)
-  In[7] = SetDelayed(Times(p_(Rational), a_(Number), c___), function()
-    if isInteger(a[1]) then
-      return Times(Rational(a[1] * p[1], p[2]), c)
-    else
-      return Times(Number(a[1] * p[1] / p[2]), c)
-    end
-  end)
-  In[8] = SetDelayed(Times(p_(Rational), q_(Rational), c___), function()
-    return Times(Rational(p[1] * q[1], p[2] * q[2]), c)
-  end)
-  In[9] = SetDelayed(Times(-1, Plus(a__)), function()
-    local r = Plus()
-    for i = 1, #a do r[i] = Times(-1, a[i]) end
-    return r
-  end)
+Rule(Times(),
+function() return Integer(1) end)
+Rule(Times(_{a=_}),
+function(a) return a end)
+Rule(Times(1, __{b=_}),
+function(b) return Times(b) end)
+Rule(Times(0, __{b=_}),
+function(b) return Integer(0) end)
+Rule(Times(-1, Plus(__{a=_})),
+function(a)
+  return apply(Plus, 
+    map(function(t) return Times(-1, t) end, a))
 end)
 
-local function ins(t, a, b)
-  if t[a:tostring()] == nil then
-    t[a:tostring()] = {a, Sequence(b)}
-    return false
+Rule(Plus(__{a=_}),
+function(a)
+  local s = groupWith(a,
+    function(p, q)
+      local cp = isNumeric(p)
+      local cq = isNumeric(q)
+      return (cp and cq) or (not (cp or cq)) 
+    end)
+  local num = s[1]
+  if isNumeric(num[1]) then
+    s[2] = s[2] or {}
   else
-    local s = t[a:tostring()][2]
-    s[#s + 1] = b
-    return true
+    s[2] = s[1]
+    s[1] = {} 
   end
-end
-
-guacyra.wrap(function()
-  In[1] = SetDelayed(Plus(c___), function()
-    local r = Plus()
-    local flag = false
-    local coefs = {}
-    for i = 1, #c do
-      local cap = {}
-      if c[i]:match(Times(a_(Number), b_), cap) then
-        flag = ins(coefs, cap.b, Number(cap.a[1])) or flag
-      elseif c[i]:match(Times(a_(Number), b__), cap) then
-        flag = ins(coefs, cap.b, Number(cap.a[1])) or flag
-      elseif c[i]:match(Times(p_(Rational), b_), cap) then
-        flag = ins(coefs, cap.b, Rational(cap.p[1], cap.p[2])) or flag
-      elseif c[i]:match(Times(p_(Rational), b__), cap) then
-        flag = ins(coefs, cap.b, Rational(cap.p[1], cap.p[2])) or flag
-      elseif c[i]:match(Times(b__), cap) then
-        flag = ins(coefs, cap.b, Number(1)) or flag
-      else
-        flag = ins(coefs, c[i], Number(1)) or flag
+  num = s[1]
+  local nnum = s[2]  
+  local snum = #num
+  if snum==0 then
+    num = Plus()
+  else 
+    num = Plus(reduce(nplus, num))
+  end
+  nnum = map(function(t)
+    if t[0]==Times then
+      if not isNumeric(t[1]) then
+        t = copy(t)
+        table.insert(t, 1, Integer(1))
       end
+      return t
+    else
+      return Times(1, t)
     end
-    if flag then
-      for k, v in pairs(coefs) do
-        v[2][0] = Plus
-        r[#r + 1] = Times(v[2], v[1])
-      end
-      return r
+  end, nnum)
+  local size = #nnum
+  nnum = groupWith(nnum, function(a, b) 
+    local cap, cap2 = {}, {}
+    a:match(Times(_{co=_}, __{te=_}), cap)
+    b:match(Times(_{co=_}, __{te=_}), cap2)
+    return equal(cap.te, cap2.te)
+    end)
+  if #nnum == size and snum <= 1 then return nil end
+  nnum = reduce1(function(s, c)
+    local ret = copy(c[1])
+    c = map(function(t)
+      return t[1]
+    end, c)
+    local co = reduce(nplus, c)
+    ret[1] = co
+    if not equal(co,Integer(0)) then
+      s[#s+1] = ret
     end
-    return nil
-  end)
+    return s
+  end, nnum, num)
+  return nnum
 end)
 
-guacyra.wrap(function()
-  In[1] = SetDelayed(Times(c__), function()
-    -- collect bases
-    local r = Times()
-    local flag = false
-    local coefs = {}
-    for i = 1, #c do
-      local cap = {}
-      if c[i]:match(Power(a_(Number), b_(Rational)), cap) then
-        flag = ins(coefs, Power(cap.a, cap.b), Number(1)) or flag
-      elseif c[i]:match(Power(a_, b_), cap) then
-        flag = ins(coefs, cap.a, cap.b) or flag
+Rule(Times(__{a=_}),
+function(a)
+  local s = groupWith(a,
+    function(p, q)
+      local cp = isNumeric(p)
+      local cq = isNumeric(q)
+      return (cp and cq) or (not (cp or cq)) 
+    end)
+  local num = s[1]
+  if isNumeric(num[1]) then
+    s[2] = s[2] or {}
+  else
+    s[2] = s[1]
+    s[1] = {} 
+  end
+  num = s[1]
+  local nnum = s[2]  
+  local snum = #num
+  if snum==0 then
+    num = Times()
+  else 
+    local prod = reduce(ntimes, num)
+    if equal(prod, Integer(0)) then
+      return Integer(0)
+    end
+    num = Times(prod)
+  end
+  nnum = map(function(t)
+    if t[0]~=Power then
+      return Power(t, 1)
+    end
+    return t
+  end, nnum)
+  local size = #nnum
+  nnum = groupWith(nnum, function(a, b) 
+    local cap, cap2 = {}, {}
+    a:match(Power(_{ba=_}, _{ex=_}), cap)
+    b:match(Power(_{ba=_}, _{ex=_}), cap2)
+    return equal(cap.ba, cap2.ba)
+    end)
+  if #nnum == size and snum <= 1 then return nil end
+  nnum = reduce1(function(s, c)
+    local ret = copy(c[1])
+    c = map(function(t)
+      return t[2]
+    end, c)
+    local co = reduce(nplus, c)
+    ret[2] = co
+    if not equal(co,Integer(0)) then
+      if equal(co, Integer(1)) then
+        s[#s+1] = ret[1]
       else
-        flag = ins(coefs, c[i], Number(1)) or flag
+        s[#s+1] = ret
       end
     end
-    if flag then
-      for k, v in pairs(coefs) do
-        v[2][0] = Plus
-        r[#r + 1] = Power(v[1], v[2])
-      end
-      return r
-    end
-    return nil
-  end)
-  In[2] = SetDelayed(Times(c__), function()
-    -- collect exponents
-    local r = Times()
-    local flag = false
-    local coefs = {}
-    for i = 1, #c do
-      local cap = {}
-      if c[i]:match(Power(a_(Number), b_), cap) then
-        flag = ins(coefs, cap.b, cap.a) or flag
-      else
-        ins(coefs, Number(1), c[i])
-      end
-    end
-    if flag then
-      for k, v in pairs(coefs) do
-        v[2][0] = Times
-        r[#r + 1] = Power(v[2], v[1])
-      end
-      return r
-    end
-    return nil
-  end)
+    return s
+  end, nnum, num)
+  return nnum
 end)
 
-guacyra.wrap(function()
-  In[1] = SetDelayed(_ ^ 0, 1)
-  In[2] = SetDelayed(1 ^ _, 1)
-  In[3] = SetDelayed(a_ ^ 1, a)
-  In[4] = SetDelayed(a_(Number) ^ b_(Number), function()
-    if isInteger(a[1]) and isInteger(b[1]) then
-      if b[1] < 0 then
-        return Rational(1, floor(a[1] ^ (-b[1])))
-      elseif b[1] > 0 then
-        return Number(floor(a[1] ^ b[1]))
-      end
-    else
-      return Number(a[1] ^ b[1])
+Rule(Times(__{a=_}),
+function(a)
+  local s = groupWith(a,
+    function(p, q)
+      local cp = isNumeric(p)
+      local cq = isNumeric(q)
+      return (cp and cq) or (not (cp or cq)) 
+    end)
+  local num = s[1]
+  if isNumeric(num[1]) then
+    s[2] = s[2] or {}
+  else
+    s[2] = s[1]
+    s[1] = {} 
+  end
+  num = s[1]
+  local nnum = s[2]  
+  local snum = #num
+  if snum==0 then
+    num = Times()
+  else 
+    local prod = reduce(ntimes, num)
+    if equal(prod, Integer(0)) then
+      return Integer(0)
     end
-  end)
-  In[5] = SetDelayed(p_(Rational) ^ b_(Number), function()
-    if isInteger(b[1]) then
-      if b[1] < 0 then
-        return Rational(floor(p[2] ^ (-b[1])), floor(p[1] ^ (-b[1])))
-      elseif b[1] > 0 then
-        return Rational(floor(p[1] ^ b[1]), floor(p[2] ^ b[1]))
-      end
-    else
-      return Number((p[1] / p[2]) ^ b[1])
+    num = Times(prod)
+  end
+  nnum = map(function(t)
+    if t[0]~=Power then
+      return Power(t, 1)
     end
-  end)
-  In[6] = SetDelayed(a_(Number) ^ p_(Rational), function()
-    local function root(fac, p, q)
-      local u, v = 1, 1
-      for i = 1, #fac do
-        local fip = fac[i][2] * p
-        local prime = fac[i][1]
-        local a = floor(fip / q)
-        local b = fip - a * q
-        u = u * floor(prime ^ a)
-        v = v * floor(prime ^ b)
-      end
-      return u, v
+    return t
+  end, nnum)
+  local size = #nnum
+  nnum = groupWith(nnum, function(a, b) 
+    local cap, cap2 = {}, {}
+    local aq = a:match(Power(_{ba=Integer}, _{ex=NumericQ}), cap)
+    local bq = b:match(Power(_{ba=Integer}, _{ex=NumericQ}), cap2)
+    return aq and bq and equal(cap.ex, cap2.ex)
+    end)
+  if #nnum == size and snum <= 1 then return nil end
+  nnum = reduce1(function(s, c)
+    if #c == 1 then
+      s[#s+1] = c[1][1]
+      return s
     end
-    if isInteger(a[1]) then
-      if a[1] > 0 then
-        if p[1] > 0 then
-          local fact = factorization(a[1])
-          local u, v = root(fact, p[1], p[2])
-          if u == 1 and p[1] == 1 then
-            return nil
-          else
-            return Times(u, Power(v, Rational(1, p[2])))
-          end
-        else
-          local fact = factorization(a[1])
-          p[1] = -p[1]
-          local k = math.floor(p[1] / p[2])
-          local r = p[1] - k * p[2]
-          local u, v = root(fact, p[2] - r, p[2])
-          return Times(Rational(u, a[1] ^ (k + 1)), Power(v, Rational(1, p[2])))
-        end
-      end
-    else
-      return Number(a[1] ^ (p[1] / p[2]))
-    end
-  end)
-  In[7] = SetDelayed(a_(Rational) ^ p_(Rational), function()
-    return Times(Power(Number(a[1]), p),
-                 Power(Number(a[2]), Rational(-p[1], p[2])))
-  end)
-  In[8] = SetDelayed(Power(Power(a_, b_), c_(IntegerQ)), function() return Power(a, b * c) end)
-  In[9] = SetDelayed(Power(Times(a__), e_(IntegerQ)), function()
-    local r = Times()
-    for i = 1, #a do r[#r + 1] = Power(a[i], e) end
-    return r
-  end)
+    local ret = copy(c[1])
+    c = map(function(t)
+      return t[1]
+    end, c)
+    local co = reduce(ntimes, c)
+    ret[1] = co
+    s[#s+1] = ret
+    return s
+  end, nnum, num)
+  return nnum
 end)
 
-guacyra.wrap(function()
-  guacyra.Expand = Expand
-  In[1] = SetDelayed(Expand(Times(a__)), function()
-    local aa = a
-    for j = 1, #aa do
-      local cap = {}
-      if aa[j]:match(Plus(b__), cap) then
-        local r = Plus()
-        for k = 1, #cap.b do
-          local t = aa:copy()
-          t[j] = cap.b[k]
-          r[#r + 1] = Expand(Times(t))
-        end
-        return r
-      elseif aa[j]:match(Power(Plus(b__), n_(Number)), cap) and
-        isInteger(cap.n[1]) and cap.n[1] > 0 then
+Rule(_{}^0,
+function() return Integer(1) end)
+Rule(1^_{},
+function() return Integer(1) end)
+Rule(_{a=_}^1,
+function(a) return a end)
+Rule(_{a=Integer}^_{b=Integer},
+function(a, b)
+  if b[1] < 0 then
+    return Rational(1, floor(a[1] ^ (-b[1])))
+  elseif b[1] > 0 then
+    return Integer(floor(a[1] ^ b[1]))
+  end
+end)
+Rule(_{p=Rational}^_{b=Integer},
+function(p, b)
+  if b[1] < 0 then
+    return Rational(floor(p[2]^(-b[1])), floor(p[1]^(-b[1])))
+  elseif b[1] > 0 then
+    return Rational(floor(p[1]^b[1]), floor(p[2]^b[1]))
+  end
+end)
+Rule(_{a=Integer}^_{p=Rational},
+function(a, p)
+  local function root(fac, p, q)
+    local u, v = 1, 1
+    for i = 1, #fac do
+      local fip = fac[i][2] * p
+      local prime = fac[i][1]
+      local a = floor(fip / q)
+      local b = fip - a * q
+      u = u * floor(prime ^ a)
+      v = v * floor(prime ^ b)
+    end
+    return u, v
+  end
+  if a[1] > 0 then
+    if p[1] > 0 then
+      local fact = factorization(a[1])
+      local u, v = root(fact, p[1], p[2])
+      if u == 1 and p[1] == 1 then
+        return nil
+      else
+        return Times(u, Power(v, Rational(1, p[2])))
+      end
+    else
+      local fact = factorization(a[1])
+      p[1] = -p[1]
+      local k = math.floor(p[1] / p[2])
+      local r = p[1] - k * p[2]
+      local u, v = root(fact, p[2] - r, p[2])
+      return Times(Rational(u, a[1] ^ (k + 1)), Power(v, Rational(1, p[2])))
+    end
+  end
+end)
+Rule(_{a=Rational}^_{p=Rational},
+function(a, p)
+  return Times(Power(Integer(a[1]), p),
+    Power(Integer(a[2]), Rational(-p[1], p[2])))
+end)
+
+Rule(Power(Power(_{a=_}, _{b=_}), _{c=_}),
+function(a, b, c)
+  return Power(a, b * c)
+end)
+
+Rule(Power(Times(__{a=_}), _{b=_}),
+function(a, b)
+  return apply(Times, 
+    map(function(t) return Power(t, b) end, a))
+end)
+
+local Sqrt, Expand = 
+  Symbols('Sqrt Expand', guacyra)
+Rule(Sqrt(_{a=_}),
+function(a) return a^Rational(1,2) end)
+
+Rule(Expand(Times(__{a=_})),
+function(a)
+  local aa = a
+  for j = 1, #aa do
+    local cap = {}
+    if aa[j]:match(Plus(__{b=_}), cap) then
+      local r = Plus()
+      for k = 1, #cap.b do
         local t = aa:copy()
-        t[0] = Times
-        t[j] = Expand(Power(Plus(cap.b), cap.n[1]))
-        return Expand(t)
+        t[j] = cap.b[k]
+        r[#r + 1] = Expand(Times(t))
       end
+      return r
+    elseif aa[j]:match(Power(Plus(__{b=_}), _{n=Integer}), cap)
+      and cap.n[1] > 0 then
+      local t = aa:copy()
+      t[0] = Times
+      t[j] = Expand(Power(Plus(cap.b), cap.n[1]))
+      return Expand(t)
     end
-    return Times(a)
-  end)
-  In[2] = SetDelayed(Expand(Power(Plus(a_, b__), n_(Number))), function()
-    local r = Plus()
-    for i = 0, n[1] do
-      r[#r + 1] = Expand(Times(binomial(n[1], i), Power(a, n[1] - i),
-                               Expand(Power(Plus(b), i))))
-    end
-    return r
-  end)
-  In[3] = SetDelayed(Expand(Plus(a_, b__)),
-               function() return Plus(Expand(a), Expand(Plus(b))) end)
-  In[4] = SetDelayed(Expand(a_), function() return a end)
+  end
+  return Times(a)
+end)
+Rule(Expand(Power(Plus(_{a=_}, __{b=_}), _{n=Integer})),
+function(a, b, n)
+  local r = Plus()
+  for i = 0, n[1] do
+    r[#r+1] = Expand(
+      Times(binomial(n[1], i), Power(a, n[1] - i),
+      Expand(Power(Plus(b), i))))
+  end
+  return r
+end)
+Rule(Expand(Plus(_{a=_}, __{b=_})), function(a, b)
+  return Plus(Expand(a), Expand(Plus(b)))
+end)
+Rule(Expand(_{a=_}),
+function(a) return a end)
+Rule(Expand(_{a=List}),
+function(a)
+  return Map(Expand, a)
 end)
 
-guacyra.wrap(function ()
-  guacyra.NumeratorDenominator = NumeratorDenominator
-  In[1] = SetDelayed(NumeratorDenominator(p_(Rational)), function ()
-    return List(p[1], p[2])
-  end)
-  In[2] = SetDelayed(NumeratorDenominator(a_(Number)), function ()
-    return List(a[1], 1)
-  end)
-  In[3] = SetDelayed(NumeratorDenominator(Power(a_, b_(Number))), function ()
-    if b[1]<0 then
-      return List(1, Power(a, -b[1]))
-    else
-      return List(Power(a, b), 1)
+local Numerator, Denominator, NumeratorDenominator, Together = 
+  Symbols('Numerator Denominator NumeratorDenominator Together', guacyra)
+
+Rule(NumeratorDenominator(_{p=Rational}),
+function(p)
+  return List(p[1], p[2])
+end)
+Rule(NumeratorDenominator(_{a=Integer}),
+function(a)
+  return List(a[1], 1)
+end)
+Rule(NumeratorDenominator(Power(_{a=_}, _{b=Integer})),
+function(a, b)
+  if b[1]<0 then
+    return List(1, Power(a, -b[1]))
+  else
+    return List(Power(a, b), 1)
+  end
+end)
+Rule(NumeratorDenominator(Power(_{a=_}, _{q=Rational})),
+function(a, q)
+  if q[1]<0 then
+    return List(1, Power(a, Rational(-q[1],q[2])))
+  else
+    return List(Power(a, q), 1)
+  end
+end)
+Rule(NumeratorDenominator(Times(__{a=_})),
+function(a)
+  local e = Map(NumeratorDenominator,List(a)):eval()
+  local num = Times()
+  local den = Times()
+  for i=1,#e do
+    num[#num+1] = e[i][1]
+    den[#den+1] = e[i][2]
+  end
+  return List(num,den)
+end)
+Rule(NumeratorDenominator(Plus(__{a=_})),
+function(a)
+  local e = Map(NumeratorDenominator,List(a)):eval()
+  local num = Plus()
+  local den = Times()
+  local t = {}
+  for i=1,#e do
+    local ei = e[i][2]
+    local eis = ei:tostring()
+    if not t[eis] then
+      t[eis] = true
+      den[#den+1] = ei
     end
-  end)
-  In[4] = SetDelayed(NumeratorDenominator(Times(a__)), function ()
-    local e = Map(NumeratorDenominator,List(a)):eval()
-    local num = Times()
-    local den = Times()
-    for i=1,#e do
-      num[#num+1] = e[i][1]
-      den[#den+1] = e[i][2]
-    end
-    return List(num,den)
-  end)
-  In[5] = SetDelayed(NumeratorDenominator(Plus(a__)), function ()
-    local e = Map(NumeratorDenominator,List(a)):eval()
-    local num = Plus()
-    local den = Times()
-    local t = {}
-    for i=1,#e do
-      local ei = e[i][2]
-      local eis = ei:tostring()
-      if not t[eis] then
-        t[eis] = true
-        den[#den+1] = ei
-      end
-    end
-    for i=1,#e do
-      local r = ((den:copy())*e[i][1]/e[i][2]):eval()
-      num[#num+1] = r
-    end
-    return List(num,den)
-  end)
-  In[6] = SetDelayed(NumeratorDenominator(a_), function ()
-    return List(a, 1)
-  end)
-  guacyra.Denominator = Denominator
-  In[7] = SetDelayed(Denominator(a_), function ()
-    local l = NumeratorDenominator(a):eval()
-    return l[2]
-  end)
-  guacyra.Numerator = Numerator
-  In[8] = SetDelayed(Numerator(a_), function ()
-    local l = Numerator(a):eval()
-    return l[1]
-  end)
-  guacyra.Together = Together
-  In[9] = SetDelayed(Together(a_), function ()
-    local l = NumeratorDenominator(a):eval()
-    if l[2][0]==Number then
-      return l[1]/l[2]
-    else
-      return Together(l[1])/Together(l[2])
-    end
-  end)
-  guacyra.Sqrt = Sqrt
-  In[10] = SetDelayed(Sqrt(a_), Power(a, Rational(1,2)))
+  end
+  for i=1,#e do
+    local r = ((den:copy())*e[i][1]/e[i][2]):eval()
+    num[#num+1] = r
+  end
+  return List(num,den)
+end)
+Rule(NumeratorDenominator(_{a=_}),
+function(a)
+  return List(a, 1)
+end)
+Rule(Numerator(_{a=_}),
+function(a)
+  local nd = NumeratorDenominator(a):eval()
+  return nd[1]
+end)
+Rule(Denominator(_{a=_}),
+function(a)
+  local nd = NumeratorDenominator(a):eval()
+  return nd[2]
+end)
+Rule(Together(_{a=_}),
+function(a)
+  local l = NumeratorDenominator(a):eval()
+  if l[2][0]==Integer then
+    return l[1]/l[2]
+  else
+    return Together(l[1])/Together(l[2])
+  end
 end)
 
---LaTeX
-
-guacyra.wrap(function ()
-  local LaTeXP = Symbol("LaTeXP")
-  guacyra.LaTeX = LaTeX
-  In[1] = SetDelayed(LaTeXP(Plus(c__)), Cat('(', LaTeX(Plus(c)), ')'))
-  In[2] = SetDelayed(LaTeXP(a_), LaTeX(a))
-  In[3] = SetDelayed(LaTeX(p_(Rational)), function()
-    local a, b = p[1], p[2]
-    if a<0 then
-      return String('-\\frac{'..(-a)..'}{'..b..'}')
+local LaTeXP = Symbol("LaTeXP")
+local LaTeX = Symbol("LaTeX")
+guacyra.LaTeX = LaTeX
+Rule(LaTeXP(Plus(__{c=_})),
+function(c)
+  return Cat('(', LaTeX(Plus(c)), ')')
+end)
+Rule(LaTeXP(_{a=_}),
+function(a) return LaTeX(a) end)
+Rule(LaTeX(Times(_{p=Rational}, _{a=Symbol})),
+function(p, a)
+  if p[1] < 0 then
+    local s = (LaTeX(Times(-p[1], a)):eval())[1]
+    return String('-\\frac{'..s..'}{'..p[2]..'}')
+  else
+    local s = (LaTeX(Times(p[1], a)):eval())[1]
+    return String('\\frac{'..s..'}{'..p[2]..'}')
+  end
+end)
+Rule(LaTeX(_{p=Rational}),
+function(p)
+  local a, b = p[1], p[2]
+  if a<0 then
+    return String('-\\frac{'..(-a)..'}{'..b..'}')
+  else
+    return String('\\frac{'..(a)..'}{'..b..'}')
+  end
+end)
+Rule(LaTeX(Times(-1,__{a=_})),
+function(a) 
+  return Cat('-', LaTeXP(Times(a)))
+end)
+Rule(LaTeX(Times(__{a=_})),
+function(a)
+  local l = NumeratorDenominator(Times(a)):eval()
+  if l[2][0]==Integer then
+    return Apply(Cat,Map(LaTeXP,List(a)))
+  else
+    local num = LaTeX(l[1]):eval()
+    local den = LaTeX(l[2]):eval()
+    return Cat('\\frac{',num,'}{',den,'}')
+  end
+end)
+Rule(LaTeX(Power(_{a=_},_{b=Rational})),
+function(a, b)
+  if b[1] == 1 then
+    if b[2] == 2 then
+      return Cat('\\sqrt{', LaTeX(a), '}')
     else
-      return String('\\frac{'..(a)..'}{'..b..'}')
+      return Cat('\\sqrt['..b[2]..']{',LaTeX(a),'}')
     end
-  end)
-  In[4] = SetDelayed(LaTeX(Times(-1,a__)), Cat('-', LaTeXP(Times(a))))
-  In[5] = SetDelayed(LaTeX(Times(a__)), function()
-    local l = NumeratorDenominator(Times(a)):eval()
-    if l[2][0]==Number then
-      return Apply(Cat,Map(LaTeXP,List(a)))
+  else
+    return Cat(LaTeXP(a),'^{', LaTeX(b), '}')
+  end
+end)
+Rule(LaTeX(Power(_{a=_}, _{b=Integer})),
+function(a, b)
+  if b[1]<0 then
+    return Cat('\\frac{1}{',LaTeX(Power(a,-b[1])),'}')
+  else
+    b = ''..b[1]
+    if #b>1 then
+      return Cat(LaTeXP(a), '^{'..b..'}')
     else
-      local num = LaTeX(l[1]):eval()
-      local den = LaTeX(l[2]):eval()
-      return Cat('\\frac{',num,'}{',den,'}')
+      return Cat(LaTeXP(a), '^'..b)
     end
-  end)
-  In[6] = SetDelayed(LaTeX(Power(a_,b_(Rational))), function()
-    if b[1] == 1 then
-      if b[2] == 2 then
-        return Cat('\\sqrt{', LaTeX(a), '}')
-      else
-        return Cat('\\sqrt['..b[2]..']{',LaTeX(a),'}')
-      end
-    else
-      return Cat(LaTeXP(a),'^{', LaTeX(b), '}')
-    end
-  end)
-  In[7] = SetDelayed(LaTeX(Power(a_, b_(Number))), function()
-    if b[1]<0 then
-      return Cat('\\frac{1}{',LaTeX(Power(a,-b[1])),'}')
-    else
-      b = ''..b[1]
-      if #b>1 then
-        return Cat(LaTeXP(a), '^{'..b..'}')
-      else
-        return Cat(LaTeXP(a), '^'..b)
-      end
-    end
-  end)
-  In[8] = SetDelayed(LaTeX(Power(a_(Symbol), b_)), function()
-    return Cat(a[1] .. '^{', LaTeX(b),'}')
-  end)
-  In[9] = SetDelayed(LaTeX(Power(a_, b_)), function()
+  end
+end)
+Rule(LaTeX(Power(_{a=Symbol}, _{b=_})),
+function(a, b)
+  return Cat(a[1] .. '^{', LaTeX(b),'}')
+end)
+Rule(LaTeX(Power(_{a=_}, _{b=_})),
+function(a, b)
     return Cat(LaTeXP(a), '^{', LaTeX(b),'}')
-  end)
-  In[10] = SetDelayed(LaTeX(Plus(c__)), function()
-    local s = ''
-    for i=1,#c do
-      local t = LaTeX(c[i]):eval()
-      if t[1]:sub(1,1)~='-' and i~=1 then
-        s = s..'+'
-      end
-      s = s..t[1]
+end)
+Rule(LaTeX(Plus(__{c=_})),
+function(c)
+  local s = ''
+  for i=1,#c do
+    local t = LaTeX(c[i]):eval()
+    if t[1]:sub(1,1)~='-' and i~=1 then
+      s = s..'+'
     end
-    return String(s)
-  end)
-  In[11] = SetDelayed(LaTeX(a_), function()
-    return String(a:tostring())
-  end)
+    s = s..t[1]
+  end
+  return String(s)
+end)
+Rule(LaTeX(_{a=_}),
+function(a)
+  return String(a:tostring())
 end)
 
-return guacyra
+local Diff, Derivative, Sin, Cos, Exp, Log, Pi = 
+  Symbols('Diff Derivative Sin Cos Exp Log Pi', guacyra)
+
+Rule(Exp(0),
+function() return Integer(1) end)
+Rule(Log(1),
+function() return Integer(0) end)
+Rule(Sin(0),
+function() return Integer(0) end)
+Rule(Sin(Pi),
+function() return Integer(0) end)
+Rule(Sin(Times(_{n=Integer}, Pi)),
+function() return Integer(0) end)
+Rule(Sin(Times(_{p=Rational}, Pi)),
+function(p)
+  local a, b = p[1], p[2]
+  if a < 0 then 
+    return -Sin(a*Pi/b)
+  elseif a/b > 2 then
+    return Sin((a%(2*b))*Pi/b)
+  elseif a/b > 1 then
+    return -Sin((a-b)*Pi/b)
+  elseif a/b > 0.5 then
+    return Sin((b - a)*Pi/b)
+  elseif a == 1 and b == 2 then
+    return Integer(1)
+  elseif a == 1 and b == 3 then
+    return Sqrt(3)/2
+  elseif a == 1 and b == 4 then
+    return Sqrt(2)/2
+  elseif a == 1 and b == 6 then
+    return Rational(1, 2)
+  else
+    return nil
+  end
+end)
+Rule(Cos(0),
+function() return Integer(1) end)
+Rule(Cos(Pi),
+function() return Integer(-1) end)
+Rule(Cos(Times(_{n=Integer}, Pi)),
+function() return Integer((-1)^n[1]) end)
+Rule(Cos(Times(_{p=Rational}, Pi)),
+function(p)
+  local a, b = p[1], p[2]
+  if a < 0 then 
+    return Cos((-a)*Pi/b)
+  elseif a/b > 2 then
+    return Cos((a%(2*b))*Pi/b)
+  elseif a/b > 1 then
+    return -Cos((a-b)*Pi/b)
+  elseif a/b > 0.5 then
+    return -Cos((b - a)*Pi/b)
+  elseif a == 1 and b == 2 then
+    return Integer(0)
+  elseif a == 1 and b == 3 then
+    return Rational(1, 2)
+  elseif a == 1 and b == 4 then
+    return Sqrt(2)/2
+  elseif a == 1 and b == 6 then
+    return Sqrt(3)/2
+  else
+    return nil
+  end
+end)
+Rule(Diff(_{k=_}, _{x=Symbol}),
+function(k, x)
+  if not has(k, x) then return Integer(0) end
+  return nil
+end)
+Rule(Diff(_{x=Symbol},_{x=Symbol}),
+function(x) return Integer(1) end)
+Rule(Diff(Power(_{x=Symbol}, _{n=Integer}), _{x=Symbol}),
+function(x, n) return n*x^(n-1) end)
+Rule(Derivative(Log)(1)(_{x=_}),
+function(x) return 1/x end)
+Rule(Derivative(Exp)(1)(_{x=_}),
+function(x) return Exp(x) end)
+Rule(Derivative(Sin)(1)(_{x=_}),
+function(x) return Cos(x) end)
+Rule(Derivative(Cos)(1)(_{x=_}),
+function(x) return -Sin(x) end)
+Rule(Diff(Times(_{k=_}, __{a=_}), _{x=Symbol}),
+function(k, x, a)
+  if not has(k, x) then 
+    return k*Diff(Times(a), x)
+  else
+    return Times(Diff(k, x), a)+k*Diff(Times(a), x)
+  end
+end)
+Rule(Diff(Plus(__{a=_}), _{x=Symbol}), 
+function(a, x) 
+  return Map(function(t) return Diff(t,x) end, Plus(a) )
+end)
+Rule(Diff(Power(_{f=_}, _{n=NumericQ}), _{x=Symbol}),
+function(f, n, x)
+  return Times(n, Power(f, n-1), Diff(f, x))
+end)
+Rule(Diff(_{f=_}(_{y=_}), _{x=Symbol}),
+function(f, y, x)
+  return Times(Derivative(f)(1)(y), Diff(y, x))
+end)
+Rule(LaTeX(Pi),
+function() return String('\\pi') end, Pi)
+Rule(LaTeX(Exp(_{a=_})),
+function(a)
+  return Cat('e^{', LaTeX(a), '}')
+end, Exp)
+Rule(LaTeX(Log(_{a=_})),
+function(a)
+  return Cat('\\log{', LaTeX(a), '}')
+end, Log)
+Rule(LaTeX(Sin(_{a=_})),
+function(a)
+  return Cat('\\sin{', LaTeX(a), '}')
+end, Sin)
+Rule(LaTeX(Cos(_{a=_})),
+function(a)
+  return Cat('\\cos{', LaTeX(a), '}')
+end, Cos)
+Rule(LaTeX(Derivative(_{f=_})(1)(_{x=_})),
+function(f, x)
+  return Cat(LaTeX(f), "{'}(", LaTeX(x),')')
+end, Derivative)
+
+--local x, a, b = Symbols('x a b')
+--print('Teste\n')
+--local exp = Diff(3*a(x)^2,x)
+--print(LaTeX(exp):eval())
