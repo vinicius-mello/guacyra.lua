@@ -188,6 +188,27 @@ local function isFunction(e)
   return isObject(e) and e[0] == Function
 end
 guacyra.isFunction = isFunction
+
+local ruleCount = 0
+
+local function maxDef(e)
+  local function maxDefR(e, s)
+    if isSymbol(e) then
+      return math.max(e.def, s)
+    elseif isAtom(e) then
+      return -1
+    else
+      local r = -1
+      for i=0,#e do
+        r = math.max(maxDefR(e[i], r), r)
+      end
+      return r
+    end
+  end
+  return maxDefR(e, -1)
+end
+guacyra.maxDef = maxDef
+
 local function lhead(e) 
   if isSymbol(e) then
     return e
@@ -224,6 +245,7 @@ makeExp = function(h, ...)
     end
     t.up = {}
     t.down = {}
+    t.def = -1
     return t
   end
   if h == Rational then
@@ -360,6 +382,8 @@ local function copy(ex)
     local r = {}
     for i = 0, #ex do r[i] = copy(ex[i]) end
     setmetatable(r, guacyra)
+    rawset(r, 'def', rawget(r, 'def'))
+    rawset(r, 'value', rawget(r, 'value'))
     return r
   end
 end
@@ -380,9 +404,10 @@ local function equalR(ea, eb)
   return false
 end
 local function equal(ea, eb)
-  return equalR(ea, conv(eb))
+  return equalR(conv(ea), conv(eb))
 end
 guacyra.equal = equal
+guacyra.__eq = equal
 
 local function has(ex, subex)
   if isAtom(ex) then
@@ -504,6 +529,14 @@ local function less(u, v)
 end
 
 guacyra.less = less
+guacyra.__lt = function(a, b)
+  return less(conv(a), conv(b))
+end
+
+guacyra.__le = function(a, b)
+  a, b = conv(a), conv(b)
+  return less(a, b) or equal(a, b)
+end
 
 guacyra.__index = guacyra
 
@@ -620,13 +653,14 @@ local function sort(e)
   return e
 end
 
+local eval
+
 local function evalR(e)
-  if isAtom(e) then return e end
-  local head = evalR(e[0])
+  local head = eval(e[0])
   local ex = head()
   if head[0] == Function then
-    for i = 1, #e do ex[i] = evalR(e[i]) end
-    return evalR(head[1](unpack(ex)))
+    for i = 1, #e do ex[i] = eval(e[i]) end
+    return eval(head[1](unpack(ex)))
   end
   local lh = lhead(head)
   if lh.holdAll then
@@ -636,7 +670,7 @@ local function evalR(e)
       if lh.holdFirst and i == 1 then
         ex[i] = e[i]
       else
-        ex[i] = evalR(e[i])
+        ex[i] = eval(e[i])
       end
     end
   end
@@ -671,21 +705,36 @@ local function evalR(e)
     if uphead.up then
       for j = 1, #uphead.up do
         tex = uphead.up[j](ex)
-        if tex then return evalR(tex) end
+        if tex then return eval(tex) end
       end
     end
   end
   if lh.down then
     for j = 1, #lh.down do
       tex = lh.down[j](ex)
-      if tex then return evalR(tex) end
+      if tex then return eval(tex) end
     end
-    return ex
   end
+  return ex
 end
 
-local function eval(e)
-  return evalR(flatten(copy(e)))
+eval = function(e)
+  if isAtom(e) then
+    return e
+  else
+--    return evalR(e)
+    local d = maxDef(e)
+    local ed = rawget(e, 'def')
+    if ed and ed == d then
+      return rawget(e, 'value') 
+    end
+    local le = evalR(e)
+    rawset(e, 'def', d)
+    rawset(e, 'value', le)
+    rawset(le, 'def', maxDef(le))
+    rawset(le, 'value', le)
+    return le
+  end
 end
 guacyra.eval = eval
 
@@ -719,6 +768,9 @@ local function Rule(pat, fu, sym)
   else
     tab = sym.up
   end
+  ruleCount = ruleCount + 1
+  sym.def = math.max(ruleCount, sym.def)
+  --print('Def: ',sym, sym.def)
   local args = getArgs(fu)
   tab[#tab+1] = function(ex)
     local cap = {}
@@ -847,6 +899,8 @@ end)
 
 local Cat, Range, RandomInteger = 
   Symbols('Cat Range RandomInteger', guacyra)
+RandomInteger.def = math.huge
+
 Rule(Cat(___{c=_}),
 function(c)
   local t = ""
@@ -1540,6 +1594,124 @@ Rule(LaTeX(Derivative(_{f=_})(1)(_{x=_})),
 function(f, x)
   return Cat(LaTeX(f), "{'}(", LaTeX(x),')')
 end, Derivative)
+
+local Matrix, Dot, Det, RREF = 
+  Symbols('Matrix Dot Det RREF', guacyra)
+
+Rule(Matrix(_{m=Integer}, _{n=Integer}, _{f=Function}),
+function(m, n, f)
+  local rs = Matrix()
+  for i=1,m[1] do
+    local r = List()
+    for j=1,n[1] do
+      r[j] = f(i, j):eval()
+    end
+    rs[i] = r
+  end
+  return rs
+end)
+Rule(Matrix(_{m=List}),
+function(m)
+  local rs = Matrix()
+  if #m==0 or #m[1]==0 then
+    error('Empty list.')
+  end
+  local n = #m[1]
+  for i=1,#m do
+    local r = List()
+    for j=1,n do
+      if #m[i]~=n then
+        error('Not a matrix.')
+      end
+      r[j] = m[i][j]
+    end
+    rs[i] = r
+  end
+  return rs
+end)
+local function dims(m) 
+  return #m, #m[1]
+end
+Rule(LaTeX(Matrix(__{rs=_})),
+function(rs)
+  local t = ''
+  for i=1,#rs do
+    local r = rs[i]
+    for j=1,#r do
+      if j>1 then t = t..' & ' end 
+      t = t..(LaTeX(r[j]):eval()[1])
+    end
+    t = t..' \\\\'
+  end
+  return Cat('\\left\\[\\begin{matrix}',
+    String(t),
+    '\\end{matrix}\\right\\]')
+end, Matrix)
+
+function dot(A, B)
+  local m, n = dims(A)
+  local n2, p = dims(B)
+  if n~=n2 then
+    error('Wrong dimensions.')
+  end
+  local rs = Matrix()
+  for i=1,m do 
+    local r = List()
+    for j=1,p do
+      local c = Plus()
+      for k=1,n do
+        c[#c+1] = A[i][k]*B[k][j]
+      end
+      r[#r+1] = c:eval()
+    end
+    rs[#rs+1] = r
+  end
+  return rs 
+end
+
+Rule(Dot(_{A=Matrix}, _{B=Matrix}), dot)
+
+local function diagonal(A) 
+  local r = List()
+  local m, n = dims(A)
+  if m~=n then
+    error('Not a square matrix')
+  end
+  for i=1,n do
+    r[#r+1] = A[i][i]
+  end
+  return r 
+end
+
+local function bird(A, X) 
+  local m, n = dims(A)
+  local d = diagonal(X)
+  for i=1,m do for j=1,n do
+    if j<i then
+      X[i][j] = Integer(0)
+    end
+  end end
+  local nd = List(Integer(0))
+  for i=n-1,1,-1 do
+    nd[#nd+1] = Plus(d[i+1], nd[#nd]):eval()
+  end
+  for i=1,n do
+    X[i][i] = Times(-1,nd[n-i+1]):eval()
+  end
+  return dot(X,A)
+end
+
+local function det(A) 
+  local m, n = dims(A)
+  local X = copy(A)
+  for i=1,n-1 do X = bird(A, X) end
+  if n%2 == 0 then
+    return Times(-1, X[1][1]):eval()
+  end
+  return X[1][1]
+end
+
+Rule(Det(_{A=Matrix}), det)
 
 guacyra.import = function()
   for k,v in pairs(guacyra) do
