@@ -382,8 +382,8 @@ local function copy(ex)
     local r = {}
     for i = 0, #ex do r[i] = copy(ex[i]) end
     setmetatable(r, guacyra)
-    rawset(r, 'def', rawget(r, 'def'))
-    rawset(r, 'value', rawget(r, 'value'))
+    --rawset(r, 'def', rawget(r, 'def'))
+    --rawset(r, 'value', rawget(r, 'value'))
     return r
   end
 end
@@ -731,8 +731,10 @@ eval = function(e)
     local le = evalR(e)
     rawset(e, 'def', d)
     rawset(e, 'value', le)
-    rawset(le, 'def', maxDef(le))
-    rawset(le, 'value', le)
+    if not isAtom(le) then
+      rawset(le, 'def', maxDef(le))
+      rawset(le, 'value', le)
+    end
     return le
   end
 end
@@ -1002,12 +1004,16 @@ end)
 
 Rule(Plus(__{a=_}),
 function(a)
-  local s = groupWith(a,
+  local s = {{},{}}
+  for i=1,#a do
+    if isNumeric(a[i]) then
+      s
+--[[  local s = groupWith(a,
     function(p, q)
       local cp = isNumeric(p)
       local cq = isNumeric(q)
       return (cp and cq) or (not (cp or cq)) 
-    end)
+    end)]]
   local num = s[1]
   if isNumeric(num[1]) then
     s[2] = s[2] or {}
@@ -1703,6 +1709,45 @@ end
 
 local function det(A) 
   local m, n = dims(A)
+  if m~=n then 
+    error('Not a square matrix.')
+  end
+  if n==2 then
+    return (A[1][1]*A[2][2]-A[1][2]*A[2][1]):eval()
+  elseif n==3 then
+    return (A[1][1]*A[2][2]*A[3][3]+
+      A[1][2]*A[2][3]*A[3][1]+
+      A[1][3]*A[2][1]*A[3][2]-
+      A[1][3]*A[2][2]*A[3][1]-
+      A[1][2]*A[2][1]*A[3][3]-
+      A[1][1]*A[2][3]*A[3][2]):eval()
+  elseif n==4 then
+    return (
+    A[1][1]*A[2][2]*A[3][3]*A[4][4]+
+    A[1][1]*A[2][3]*A[3][4]*A[4][2]+
+    A[1][1]*A[2][4]*A[3][2]*A[4][3]+
+    A[1][2]*A[2][1]*A[3][4]*A[4][3]+
+    A[1][2]*A[2][3]*A[3][1]*A[4][4]+
+    A[1][2]*A[2][4]*A[3][3]*A[4][1]+
+    A[1][3]*A[2][1]*A[3][2]*A[4][4]+
+    A[1][3]*A[2][2]*A[3][4]*A[4][1]+
+    A[1][3]*A[2][4]*A[3][1]*A[4][2]+
+    A[1][4]*A[2][1]*A[3][3]*A[4][2]+
+    A[1][4]*A[2][2]*A[3][1]*A[4][3]+
+    A[1][4]*A[2][3]*A[3][2]*A[4][1]-
+    A[1][1]*A[2][2]*A[3][4]*A[4][3]-
+    A[1][1]*A[2][3]*A[3][2]*A[4][4]-
+    A[1][1]*A[2][4]*A[3][3]*A[4][2]-
+    A[1][2]*A[2][1]*A[3][3]*A[4][4]-
+    A[1][2]*A[2][3]*A[3][4]*A[4][1]-
+    A[1][2]*A[2][4]*A[3][1]*A[4][3]-
+    A[1][3]*A[2][1]*A[3][4]*A[4][2]-
+    A[1][3]*A[2][2]*A[3][1]*A[4][4]-
+    A[1][3]*A[2][4]*A[3][2]*A[4][1]-
+    A[1][4]*A[2][1]*A[3][2]*A[4][3]-
+    A[1][4]*A[2][2]*A[3][3]*A[4][1]-
+    A[1][4]*A[2][3]*A[3][1]*A[4][2]):eval()
+  end
   local X = copy(A)
   for i=1,n-1 do X = bird(A, X) end
   if n%2 == 0 then
