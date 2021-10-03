@@ -718,22 +718,29 @@ local function evalR(e)
   return ex
 end
 
+local cache = {}
+
 eval = function(e)
   if isAtom(e) then
     return e
   else
 --    return evalR(e)
     local d = maxDef(e)
-    local ed = rawget(e, 'def')
-    if ed and ed == d then
-      return rawget(e, 'value') 
+    local st = tostr(e)
+    local ch = cache[st]
+    if ch and ch.def == d and d~= math.huge then 
+      return ch.value 
     end
     local le = evalR(e)
-    rawset(e, 'def', d)
-    rawset(e, 'value', le)
+    ch = {}
+    ch.def = d
+    ch.value = le
+    cache[st] = ch
     if not isAtom(le) then
-      rawset(le, 'def', maxDef(le))
-      rawset(le, 'value', le)
+      local ch = {}
+      ch.def = maxDef(le)
+      ch.value = le
+      cache[tostr(le)] = ch
     end
     return le
   end
@@ -1004,43 +1011,30 @@ end)
 
 Rule(Plus(__{a=_}),
 function(a)
-  local s = {{},{}}
+  local n = Integer(0)
+  local snum = 0
+  local nnum = List()
   for i=1,#a do
-    if isNumeric(a[i]) then
-      s
---[[  local s = groupWith(a,
-    function(p, q)
-      local cp = isNumeric(p)
-      local cq = isNumeric(q)
-      return (cp and cq) or (not (cp or cq)) 
-    end)]]
-  local num = s[1]
-  if isNumeric(num[1]) then
-    s[2] = s[2] or {}
-  else
-    s[2] = s[1]
-    s[1] = {} 
-  end
-  num = s[1]
-  local nnum = s[2]  
-  local snum = #num
-  if snum==0 then
-    num = Plus()
-  else 
-    num = Plus(reduce(nplus, num))
-  end
-  nnum = map(function(t)
-    if t[0]==Times then
-      if not isNumeric(t[1]) then
-        t = copy(t)
-        table.insert(t, 1, Integer(1))
-      end
-      return t
+    local t = a[i]
+    if isNumeric(t) then
+      n = nplus(n, t)
+      snum = snum+1
     else
-      return Times(1, t)
+      if t[0]==Times then
+        if not isNumeric(t[1]) then
+          t = copy(t)
+          table.insert(t, 1, Integer(1))
+        end
+      else
+        t = Times(1, t)
+      end
+      nnum[#nnum+1] = t
     end
-  end, nnum)
+  end
   local size = #nnum
+  if size == 0 then
+    return n
+  end
   nnum = groupWith(nnum, function(a, b) 
     local cap, cap2 = {}, {}
     a:match(Times(_{co=_}, __{te=_}), cap)
@@ -1048,6 +1042,12 @@ function(a)
     return equal(cap.te, cap2.te)
     end)
   if #nnum == size and snum <= 1 then return nil end
+  local num
+  if equal(n, 0) then
+    num = Plus()
+  else
+    num = Plus(n)
+  end
   nnum = reduce1(function(s, c)
     local ret = copy(c[1])
     c = map(function(t)
@@ -1065,38 +1065,25 @@ end)
 
 Rule(Times(__{a=_}),
 function(a)
-  local s = groupWith(a,
-    function(p, q)
-      local cp = isNumeric(p)
-      local cq = isNumeric(q)
-      return (cp and cq) or (not (cp or cq)) 
-    end)
-  local num = s[1]
-  if isNumeric(num[1]) then
-    s[2] = s[2] or {}
-  else
-    s[2] = s[1]
-    s[1] = {} 
-  end
-  num = s[1]
-  local nnum = s[2]  
-  local snum = #num
-  if snum==0 then
-    num = Times()
-  else 
-    local prod = reduce(ntimes, num)
-    if equal(prod, Integer(0)) then
-      return Integer(0)
+  local n = Integer(1)
+  local snum = 0
+  local nnum = List()
+  for i=1,#a do
+    local t = a[i]
+    if isNumeric(t) then
+      n = ntimes(n, t)
+      snum = snum+1
+    else
+      if t[0]~=Power then
+        t = Power(t, 1)
+      end
+      nnum[#nnum+1] = t
     end
-    num = Times(prod)
   end
-  nnum = map(function(t)
-    if t[0]~=Power then
-      return Power(t, 1)
-    end
-    return t
-  end, nnum)
   local size = #nnum
+  if size == 0 or equal(n, 0) then
+    return n
+  end
   nnum = groupWith(nnum, function(a, b) 
     local cap, cap2 = {}, {}
     a:match(Power(_{ba=_}, _{ex=_}), cap)
@@ -1104,6 +1091,12 @@ function(a)
     return equal(cap.ba, cap2.ba)
     end)
   if #nnum == size and snum <= 1 then return nil end
+  local num
+  if equal(n, 1) then
+    num = Times()
+  else
+    num = Times(n)
+  end
   nnum = reduce1(function(s, c)
     local ret = copy(c[1])
     c = map(function(t)
@@ -1125,38 +1118,25 @@ end)
 
 Rule(Times(__{a=_}),
 function(a)
-  local s = groupWith(a,
-    function(p, q)
-      local cp = isNumeric(p)
-      local cq = isNumeric(q)
-      return (cp and cq) or (not (cp or cq)) 
-    end)
-  local num = s[1]
-  if isNumeric(num[1]) then
-    s[2] = s[2] or {}
-  else
-    s[2] = s[1]
-    s[1] = {} 
-  end
-  num = s[1]
-  local nnum = s[2]  
-  local snum = #num
-  if snum==0 then
-    num = Times()
-  else 
-    local prod = reduce(ntimes, num)
-    if equal(prod, Integer(0)) then
-      return Integer(0)
+  local n = Integer(1)
+  local snum = 0
+  local nnum = List()
+  for i=1,#a do
+    local t = a[i]
+    if isNumeric(t) then
+      n = ntimes(n, t)
+      snum = snum+1
+    else
+      if t[0]~=Power then
+        t = Power(t, 1)
+      end
+      nnum[#nnum+1] = t
     end
-    num = Times(prod)
   end
-  nnum = map(function(t)
-    if t[0]~=Power then
-      return Power(t, 1)
-    end
-    return t
-  end, nnum)
   local size = #nnum
+  if size == 0 or equal(n, 0) then
+    return n
+  end
   nnum = groupWith(nnum, function(a, b) 
     local cap, cap2 = {}, {}
     local aq = a:match(Power(_{ba=Integer}, _{ex=NumericQ}), cap)
@@ -1164,6 +1144,12 @@ function(a)
     return aq and bq and equal(cap.ex, cap2.ex)
     end)
   if #nnum == size and snum <= 1 then return nil end
+  local num
+  if equal(n, 1) then
+    num = Times()
+  else
+    num = Times(n)
+  end
   nnum = reduce1(function(s, c)
     if #c == 1 then
       s[#s+1] = c[1][1]
@@ -1294,12 +1280,12 @@ end)
 Rule(Expand(Plus(_{a=_}, __{b=_})), function(a, b)
   return Plus(Expand(a), Expand(Plus(b)))
 end)
-Rule(Expand(_{a=_}),
-function(a) return a end)
 Rule(Expand(_{a=List}),
 function(a)
   return Map(Expand, a)
 end)
+Rule(Expand(_{a=_}),
+function(a) return a end)
 
 local Numerator, Denominator, NumeratorDenominator, Together = 
   Symbols('Numerator Denominator NumeratorDenominator Together', guacyra)
