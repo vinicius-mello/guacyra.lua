@@ -648,7 +648,7 @@ local function sort(e)
   end
   local head = e[0]
   if isSymbol(head) and head.orderless then
-    table.sort(e, guacyra.less)
+    table.sort(e, less)
   end
   return e
 end
@@ -698,7 +698,7 @@ local function evalR(e)
       end
     end
   end
-  if lh.orderless then table.sort(ex, guacyra.less) end
+  if lh.orderless then table.sort(ex, less) end
   local tex
   for i = 1, #ex do
     local uphead = lhead(ex[i])
@@ -718,14 +718,14 @@ local function evalR(e)
   return ex
 end
 
-local cache = {}
+--local cache = {}
 
 eval = function(e)
   if isAtom(e) then
     return e
   else
---    return evalR(e)
-    local d = maxDef(e)
+    return evalR(e)
+    --[[local d = maxDef(e)
     local st = tostr(e)
     local ch = cache[st]
     if ch and ch.def == d and d~= math.huge then 
@@ -742,18 +742,18 @@ eval = function(e)
       ch.value = le
       cache[tostr(le)] = ch
     end
-    return le
+    return le]]
   end
 end
 guacyra.eval = eval
-
+local max_args = 10
 local function getArgs(fun)
   local args = {}
   local hook = debug.gethook()
   local argHook = function( ... )
     local info = debug.getinfo(3)
     if 'pcall' ~= info.name then return end
-    for i = 1, math.huge do
+    for i = 1, max_args do
       local name, value = debug.getlocal(2, i)
       if '(*temporary)' == name 
         or '(temporary)' == name then
