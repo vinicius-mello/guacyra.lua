@@ -1,28 +1,32 @@
 local guacyra = require('guacyra')
 guacyra.import()
 
+--local profiler = require("profiler")
+--profiler.start()
+
+
 math.randomseed(1)
 local test = {}
 test[#test+1] = function()
   print('Sum 1000')
   local s = Plus()
   for i=1, 1000 do 
-    s[#s+1] = Integer(i)
+    s[#s+1] = Int(i)
   end
   local sum = s:eval()
   print('sum=', sum)
-  assert(sum==Integer(500500))
+  assert(sum==Int(500500))
 end
 
 test[#test+1] = function()
   print('Sum 1/n*(n+1)')
   local s = Plus()
   for i=1, 999 do
-    s[#s+1] = Rational(1,i*(i+1))
+    s[#s+1] = Rat(1,i*(i+1))
   end
   local sum = s:eval()
   print('sum=', sum)
-  assert(sum==Rational(999,1000))
+  assert(sum==Rat(999,1000))
 end
 
 test[#test+1] = function()
@@ -51,3 +55,6 @@ for i=1,#test do
   test[i]()
   print('\t time elapsed: ',os.clock()-time)
 end
+
+--profiler.stop()
+--profiler.report("profiler.log")

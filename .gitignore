@@ -1,4 +1,5 @@
 .lua-format
+profiler.lua
 # Compiled Lua sources
 luac.out
 

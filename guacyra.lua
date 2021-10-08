@@ -8,7 +8,7 @@ local function gcd(a, b)
   return abs(a)
 end
 
-local function isInteger(a) return type(a) == 'number' and a == floor(a) end
+local function isInt(a) return type(a) == 'number' and a == floor(a) end
 
 local function binomial(n, k)
   if k > n then return nil end
@@ -147,16 +147,16 @@ local function makeAtom(s)
   return t
 end
 
-local Integer = makeAtom('Integer')
-local Rational = makeAtom('Rational')
+local Int = makeAtom('Int')
+local Rat = makeAtom('Rat')
 local String = makeAtom('String')
 local Boolean = makeAtom('Boolean')
 local Function = makeAtom('Function')
 
 local List, _, __, ___
 guacyra.Symbol = Symbol
-guacyra.Integer = Integer
-guacyra.Rational = Rational
+guacyra.Int = Int
+guacyra.Rat = Rat
 guacyra.String = String
 guacyra.Boolean = Boolean
 guacyra.Function = Function
@@ -169,23 +169,26 @@ local function isObject(e)
 end
 
 local function isAtomHead(e)
-  return e == Symbol or e == Integer or
-    e == Rational or e == String or
+  return e == Symbol or e == Int or
+    e == Rat or e == String or
     e == Boolean or e == Function
 end
 
 local function isAtom(e)
-  return isObject(e) and isAtomHead(e[0])
+  local h = e[0]
+  return h == Symbol or h == Int or
+    h == Rat or h == String or
+    h == Boolean or h == Function
 end
 guacyra.isAtom = isAtom
 
 local function isSymbol(e)
-  return isObject(e) and e[0] == Symbol
+  return e[0] == Symbol
 end
 guacyra.isSymbol = isSymbol
 
 local function isFunction(e)
-  return isObject(e) and e[0] == Function
+  return e[0] == Function
 end
 guacyra.isFunction = isFunction
 
@@ -221,7 +224,7 @@ local makeExp
 local function conv(a)
   if not isObject(a) then
     if type(a) == 'number' then
-      a = Integer(floor(a))
+      a = Int(floor(a))
     elseif type(a) == 'string' then
       a = String(a)
     elseif type(a) == 'boolean' then
@@ -248,9 +251,9 @@ makeExp = function(h, ...)
     t.def = -1
     return t
   end
-  if h == Rational then
-    if not isInteger(t[1]) or not isInteger(t[2]) then
-      error('Ill-formed Rational')
+  if h == Rat then
+    if not isInt(t[1]) or not isInt(t[2]) then
+      error('Ill-formed Rat')
     end
     local d = gcd(t[1], t[2])
     t[1] = floor(t[1] / d) -- lua 5.3
@@ -260,7 +263,7 @@ makeExp = function(h, ...)
       t[1] = -t[1]
     end
     if t[2] == 1 then
-      t[0] = Integer
+      t[0] = Int
       t[2] = nil
     end
   end
@@ -323,8 +326,8 @@ tostr = function(e)
   if isAtom(e) then
     if e[0] == Symbol then return e[1] end
     if e[0] == String then return e[1] end
-    if e[0] == Integer then return '' .. e[1] end
-    if e[0] == Rational then return '' .. e[1] .. '/' .. e[2] end
+    if e[0] == Int then return '' .. e[1] end
+    if e[0] == Rat then return '' .. e[1] .. '/' .. e[2] end
     if e[0] == Boolean then
       if e[1] then
         return 'True'
@@ -404,7 +407,7 @@ local function equalR(ea, eb)
   return false
 end
 local function equal(ea, eb)
-  return equalR(conv(ea), conv(eb))
+  return equalR(ea, eb)
 end
 guacyra.equal = equal
 guacyra.__eq = equal
@@ -433,13 +436,13 @@ local Power = Symbol('Power')
 guacyra.Power = Power
 
 local function isNumeric(e)
-  return e[0] == Integer or e[0] == Rational
+  return e[0] == Int or e[0] == Rat
 end
 
 local function numericValue(e)
-  if e[0] == Integer then
+  if e[0] == Int then
     return e[1]
-  elseif e[0] == Rational then
+  elseif e[0] == Rat then
     return e[1] / e[2]
   end
 end
@@ -529,12 +532,9 @@ local function less(u, v)
 end
 
 guacyra.less = less
-guacyra.__lt = function(a, b)
-  return less(conv(a), conv(b))
-end
+guacyra.__lt = less
 
 guacyra.__le = function(a, b)
-  a, b = conv(a), conv(b)
   return less(a, b) or equal(a, b)
 end
 
@@ -906,9 +906,9 @@ function(a, b)
   return apply(List, s)
 end)
 
-local Cat, Range, RandomInteger = 
-  Symbols('Cat Range RandomInteger', guacyra)
-RandomInteger.def = math.huge
+local Cat, Range, RandomInt = 
+  Symbols('Cat Range RandomInt', guacyra)
+RandomInt.def = math.huge
 
 Rule(Cat(___{c=_}),
 function(c)
@@ -922,23 +922,23 @@ function(c)
   end
   return String(t)
 end)
-Rule(Range(_{a=Integer}, _{b=Integer}),
+Rule(Range(_{a=Int}, _{b=Int}),
 function(a, b)
   local t = List()
   for i = a[1], b[1] do
-    t[#t+1] = Integer(i) end
+    t[#t+1] = Int(i) end
   return t
 end)
-Rule(RandomInteger({_{a=Integer}, _{b=Integer}}),
+Rule(RandomInt({_{a=Int}, _{b=Int}}),
 function(a, b)
-  return Integer(random(a[1], b[1]))
+  return Int(random(a[1], b[1]))
 end)
-Rule(RandomInteger({_{a=Integer}, _{b=Integer}},
-  _{n=Integer}),
+Rule(RandomInt({_{a=Int}, _{b=Int}},
+  _{n=Int}),
 function(a, b, n)
   local t = List()
   for i = 1, n[1] do
-    t[#t+1] = Integer(random(a[1], b[1]))
+    t[#t+1] = Int(random(a[1], b[1]))
   end
   return t
 end)
@@ -959,36 +959,36 @@ guacyra.NumericQ = NumericQ
 Plus.flat = true
 Plus.orderless = true
 Rule(Plus(),
-function() return Integer(0) end)
+function() return Int(0) end)
 Rule(Plus(_{a=_}),
 function(a) return a end)
 local function nplus(a, b)
-  if a[0]==Integer then
-    if b[0]==Integer then
-      return Integer(a[1]+b[1])
+  if a[0]==Int then
+    if b[0]==Int then
+      return Int(a[1]+b[1])
     else
-      return Rational(a[1]*b[2]+b[1], b[2])
+      return Rat(a[1]*b[2]+b[1], b[2])
     end
   else
-    if b[0]==Integer then
-      return Rational(b[1]*a[2]+a[1], a[2])
+    if b[0]==Int then
+      return Rat(b[1]*a[2]+a[1], a[2])
     else
-      return Rational(a[1]*b[2]+b[1]*a[2], a[2]*b[2])
+      return Rat(a[1]*b[2]+b[1]*a[2], a[2]*b[2])
     end
   end
 end 
 local function ntimes(a, b)
-  if a[0]==Integer then
-    if b[0]==Integer then
-      return Integer(a[1]*b[1])
+  if a[0]==Int then
+    if b[0]==Int then
+      return Int(a[1]*b[1])
     else
-      return Rational(a[1]*b[1], b[2])
+      return Rat(a[1]*b[1], b[2])
     end
   else
-    if b[0]==Integer then
-      return Rational(b[1]*a[1], a[2])
+    if b[0]==Int then
+      return Rat(b[1]*a[1], a[2])
     else
-      return Rational(a[1]*b[1], a[2]*b[2])
+      return Rat(a[1]*b[1], a[2]*b[2])
     end
   end
 end 
@@ -996,13 +996,13 @@ end
 Times.flat = true
 Times.orderless = true
 Rule(Times(),
-function() return Integer(1) end)
+function() return Int(1) end)
 Rule(Times(_{a=_}),
 function(a) return a end)
 Rule(Times(1, __{b=_}),
 function(b) return Times(b) end)
 Rule(Times(0, __{b=_}),
-function(b) return Integer(0) end)
+function(b) return Int(0) end)
 Rule(Times(-1, Plus(__{a=_})),
 function(a)
   return apply(Plus, 
@@ -1011,7 +1011,7 @@ end)
 
 Rule(Plus(__{a=_}),
 function(a)
-  local n = Integer(0)
+  local n = Int(0)
   local snum = 0
   local nnum = List()
   for i=1,#a do
@@ -1023,7 +1023,7 @@ function(a)
       if t[0]==Times then
         if not isNumeric(t[1]) then
           t = copy(t)
-          table.insert(t, 1, Integer(1))
+          table.insert(t, 1, Int(1))
         end
       else
         t = Times(1, t)
@@ -1043,7 +1043,7 @@ function(a)
     end)
   if #nnum == size and snum <= 1 then return nil end
   local num
-  if equal(n, 0) then
+  if equal(n, Int(0)) then
     num = Plus()
   else
     num = Plus(n)
@@ -1055,7 +1055,7 @@ function(a)
     end, c)
     local co = reduce(nplus, c)
     ret[1] = co
-    if not equal(co,Integer(0)) then
+    if not equal(co, Int(0)) then
       s[#s+1] = ret
     end
     return s
@@ -1065,7 +1065,7 @@ end)
 
 Rule(Times(__{a=_}),
 function(a)
-  local n = Integer(1)
+  local n = Int(1)
   local snum = 0
   local nnum = List()
   for i=1,#a do
@@ -1081,7 +1081,7 @@ function(a)
     end
   end
   local size = #nnum
-  if size == 0 or equal(n, 0) then
+  if size == 0 or equal(n, Int(0)) then
     return n
   end
   nnum = groupWith(nnum, function(a, b) 
@@ -1092,7 +1092,7 @@ function(a)
     end)
   if #nnum == size and snum <= 1 then return nil end
   local num
-  if equal(n, 1) then
+  if equal(n, Int(1)) then
     num = Times()
   else
     num = Times(n)
@@ -1104,8 +1104,8 @@ function(a)
     end, c)
     local co = reduce(nplus, c)
     ret[2] = co
-    if not equal(co,Integer(0)) then
-      if equal(co, Integer(1)) then
+    if not equal(co, Int(0)) then
+      if equal(co, Int(1)) then
         s[#s+1] = ret[1]
       else
         s[#s+1] = ret
@@ -1118,7 +1118,7 @@ end)
 
 Rule(Times(__{a=_}),
 function(a)
-  local n = Integer(1)
+  local n = Int(1)
   local snum = 0
   local nnum = List()
   for i=1,#a do
@@ -1134,18 +1134,18 @@ function(a)
     end
   end
   local size = #nnum
-  if size == 0 or equal(n, 0) then
+  if size == 0 or equal(n, Int(0)) then
     return n
   end
   nnum = groupWith(nnum, function(a, b) 
     local cap, cap2 = {}, {}
-    local aq = a:match(Power(_{ba=Integer}, _{ex=NumericQ}), cap)
-    local bq = b:match(Power(_{ba=Integer}, _{ex=NumericQ}), cap2)
+    local aq = a:match(Power(_{ba=Int}, _{ex=NumericQ}), cap)
+    local bq = b:match(Power(_{ba=Int}, _{ex=NumericQ}), cap2)
     return aq and bq and equal(cap.ex, cap2.ex)
     end)
   if #nnum == size and snum <= 1 then return nil end
   local num
-  if equal(n, 1) then
+  if equal(n, Int(1)) then
     num = Times()
   else
     num = Times(n)
@@ -1168,28 +1168,28 @@ function(a)
 end)
 
 Rule(_{}^0,
-function() return Integer(1) end)
+function() return Int(1) end)
 Rule(1^_{},
-function() return Integer(1) end)
+function() return Int(1) end)
 Rule(_{a=_}^1,
 function(a) return a end)
-Rule(_{a=Integer}^_{b=Integer},
+Rule(_{a=Int}^_{b=Int},
 function(a, b)
   if b[1] < 0 then
-    return Rational(1, floor(a[1] ^ (-b[1])))
+    return Rat(1, floor(a[1] ^ (-b[1])))
   elseif b[1] > 0 then
-    return Integer(floor(a[1] ^ b[1]))
+    return Int(floor(a[1] ^ b[1]))
   end
 end)
-Rule(_{p=Rational}^_{b=Integer},
+Rule(_{p=Rat}^_{b=Int},
 function(p, b)
   if b[1] < 0 then
-    return Rational(floor(p[2]^(-b[1])), floor(p[1]^(-b[1])))
+    return Rat(floor(p[2]^(-b[1])), floor(p[1]^(-b[1])))
   elseif b[1] > 0 then
-    return Rational(floor(p[1]^b[1]), floor(p[2]^b[1]))
+    return Rat(floor(p[1]^b[1]), floor(p[2]^b[1]))
   end
 end)
-Rule(_{a=Integer}^_{p=Rational},
+Rule(_{a=Int}^_{p=Rat},
 function(a, p)
   local function root(fac, p, q)
     local u, v = 1, 1
@@ -1210,7 +1210,7 @@ function(a, p)
       if u == 1 and p[1] == 1 then
         return nil
       else
-        return Times(u, Power(v, Rational(1, p[2])))
+        return Times(u, Power(v, Rat(1, p[2])))
       end
     else
       local fact = factorization(a[1])
@@ -1218,14 +1218,14 @@ function(a, p)
       local k = math.floor(p[1] / p[2])
       local r = p[1] - k * p[2]
       local u, v = root(fact, p[2] - r, p[2])
-      return Times(Rational(u, a[1] ^ (k + 1)), Power(v, Rational(1, p[2])))
+      return Times(Rat(u, a[1] ^ (k + 1)), Power(v, Rat(1, p[2])))
     end
   end
 end)
-Rule(_{a=Rational}^_{p=Rational},
+Rule(_{a=Rat}^_{p=Rat},
 function(a, p)
-  return Times(Power(Integer(a[1]), p),
-    Power(Integer(a[2]), Rational(-p[1], p[2])))
+  return Times(Power(Int(a[1]), p),
+    Power(Int(a[2]), Rat(-p[1], p[2])))
 end)
 
 Rule(Power(Power(_{a=_}, _{b=_}), _{c=_}),
@@ -1242,7 +1242,7 @@ end)
 local Sqrt, Expand = 
   Symbols('Sqrt Expand', guacyra)
 Rule(Sqrt(_{a=_}),
-function(a) return a^Rational(1,2) end)
+function(a) return a^Rat(1,2) end)
 
 Rule(Expand(Times(__{a=_})),
 function(a)
@@ -1257,7 +1257,7 @@ function(a)
         r[#r + 1] = Expand(Times(t))
       end
       return r
-    elseif aa[j]:match(Power(Plus(__{b=_}), _{n=Integer}), cap)
+    elseif aa[j]:match(Power(Plus(__{b=_}), _{n=Int}), cap)
       and cap.n[1] > 0 then
       local t = aa:copy()
       t[0] = Times
@@ -1267,7 +1267,7 @@ function(a)
   end
   return Times(a)
 end)
-Rule(Expand(Power(Plus(_{a=_}, __{b=_}), _{n=Integer})),
+Rule(Expand(Power(Plus(_{a=_}, __{b=_}), _{n=Int})),
 function(a, b, n)
   local r = Plus()
   for i = 0, n[1] do
@@ -1290,15 +1290,15 @@ function(a) return a end)
 local Numerator, Denominator, NumeratorDenominator, Together = 
   Symbols('Numerator Denominator NumeratorDenominator Together', guacyra)
 
-Rule(NumeratorDenominator(_{p=Rational}),
+Rule(NumeratorDenominator(_{p=Rat}),
 function(p)
   return List(p[1], p[2])
 end)
-Rule(NumeratorDenominator(_{a=Integer}),
+Rule(NumeratorDenominator(_{a=Int}),
 function(a)
   return List(a[1], 1)
 end)
-Rule(NumeratorDenominator(Power(_{a=_}, _{b=Integer})),
+Rule(NumeratorDenominator(Power(_{a=_}, _{b=Int})),
 function(a, b)
   if b[1]<0 then
     return List(1, Power(a, -b[1]))
@@ -1306,10 +1306,10 @@ function(a, b)
     return List(Power(a, b), 1)
   end
 end)
-Rule(NumeratorDenominator(Power(_{a=_}, _{q=Rational})),
+Rule(NumeratorDenominator(Power(_{a=_}, _{q=Rat})),
 function(a, q)
   if q[1]<0 then
-    return List(1, Power(a, Rational(-q[1],q[2])))
+    return List(1, Power(a, Rat(-q[1],q[2])))
   else
     return List(Power(a, q), 1)
   end
@@ -1362,7 +1362,7 @@ end)
 Rule(Together(_{a=_}),
 function(a)
   local l = NumeratorDenominator(a):eval()
-  if l[2][0]==Integer then
+  if l[2][0]==Int then
     return l[1]/l[2]
   else
     return Together(l[1])/Together(l[2])
@@ -1378,7 +1378,7 @@ function(c)
 end)
 Rule(LaTeXP(_{a=_}),
 function(a) return LaTeX(a) end)
-Rule(LaTeX(Times(_{p=Rational}, _{a=Symbol})),
+Rule(LaTeX(Times(_{p=Rat}, _{a=Symbol})),
 function(p, a)
   if p[1] < 0 then
     local s = (LaTeX(Times(-p[1], a)):eval())[1]
@@ -1388,7 +1388,7 @@ function(p, a)
     return String('\\frac{'..s..'}{'..p[2]..'}')
   end
 end)
-Rule(LaTeX(_{p=Rational}),
+Rule(LaTeX(_{p=Rat}),
 function(p)
   local a, b = p[1], p[2]
   if a<0 then
@@ -1404,7 +1404,7 @@ end)
 Rule(LaTeX(Times(__{a=_})),
 function(a)
   local l = NumeratorDenominator(Times(a)):eval()
-  if l[2][0]==Integer then
+  if l[2][0]==Int then
     return Apply(Cat,Map(LaTeXP,List(a)))
   else
     local num = LaTeX(l[1]):eval()
@@ -1412,7 +1412,7 @@ function(a)
     return Cat('\\frac{',num,'}{',den,'}')
   end
 end)
-Rule(LaTeX(Power(_{a=_},_{b=Rational})),
+Rule(LaTeX(Power(_{a=_},_{b=Rat})),
 function(a, b)
   if b[1] == 1 then
     if b[2] == 2 then
@@ -1424,7 +1424,7 @@ function(a, b)
     return Cat(LaTeXP(a),'^{', LaTeX(b), '}')
   end
 end)
-Rule(LaTeX(Power(_{a=_}, _{b=Integer})),
+Rule(LaTeX(Power(_{a=_}, _{b=Int})),
 function(a, b)
   if b[1]<0 then
     return Cat('\\frac{1}{',LaTeX(Power(a,-b[1])),'}')
@@ -1466,16 +1466,16 @@ local Diff, Derivative, Sin, Cos, Exp, Log, Pi =
   Symbols('Diff Derivative Sin Cos Exp Log Pi', guacyra)
 
 Rule(Exp(0),
-function() return Integer(1) end)
+function() return Int(1) end)
 Rule(Log(1),
-function() return Integer(0) end)
+function() return Int(0) end)
 Rule(Sin(0),
-function() return Integer(0) end)
+function() return Int(0) end)
 Rule(Sin(Pi),
-function() return Integer(0) end)
-Rule(Sin(Times(_{n=Integer}, Pi)),
-function() return Integer(0) end)
-Rule(Sin(Times(_{p=Rational}, Pi)),
+function() return Int(0) end)
+Rule(Sin(Times(_{n=Int}, Pi)),
+function() return Int(0) end)
+Rule(Sin(Times(_{p=Rat}, Pi)),
 function(p)
   local a, b = p[1], p[2]
   if a < 0 then 
@@ -1487,24 +1487,24 @@ function(p)
   elseif a/b > 0.5 then
     return Sin((b - a)*Pi/b)
   elseif a == 1 and b == 2 then
-    return Integer(1)
+    return Int(1)
   elseif a == 1 and b == 3 then
     return Sqrt(3)/2
   elseif a == 1 and b == 4 then
     return Sqrt(2)/2
   elseif a == 1 and b == 6 then
-    return Rational(1, 2)
+    return Rat(1, 2)
   else
     return nil
   end
 end)
 Rule(Cos(0),
-function() return Integer(1) end)
+function() return Int(1) end)
 Rule(Cos(Pi),
-function() return Integer(-1) end)
-Rule(Cos(Times(_{n=Integer}, Pi)),
-function() return Integer((-1)^n[1]) end)
-Rule(Cos(Times(_{p=Rational}, Pi)),
+function() return Int(-1) end)
+Rule(Cos(Times(_{n=Int}, Pi)),
+function() return Int((-1)^n[1]) end)
+Rule(Cos(Times(_{p=Rat}, Pi)),
 function(p)
   local a, b = p[1], p[2]
   if a < 0 then 
@@ -1516,9 +1516,9 @@ function(p)
   elseif a/b > 0.5 then
     return -Cos((b - a)*Pi/b)
   elseif a == 1 and b == 2 then
-    return Integer(0)
+    return Int(0)
   elseif a == 1 and b == 3 then
-    return Rational(1, 2)
+    return Rat(1, 2)
   elseif a == 1 and b == 4 then
     return Sqrt(2)/2
   elseif a == 1 and b == 6 then
@@ -1529,12 +1529,12 @@ function(p)
 end)
 Rule(Diff(_{k=_}, _{x=Symbol}),
 function(k, x)
-  if not has(k, x) then return Integer(0) end
+  if not has(k, x) then return Int(0) end
   return nil
 end)
 Rule(Diff(_{x=Symbol},_{x=Symbol}),
-function(x) return Integer(1) end)
-Rule(Diff(Power(_{x=Symbol}, _{n=Integer}), _{x=Symbol}),
+function(x) return Int(1) end)
+Rule(Diff(Power(_{x=Symbol}, _{n=Int}), _{x=Symbol}),
 function(x, n) return n*x^(n-1) end)
 Rule(Derivative(Log)(1)(_{x=_}),
 function(x) return 1/x end)
@@ -1590,7 +1590,7 @@ end, Derivative)
 local Matrix, Dot, Det, RREF = 
   Symbols('Matrix Dot Det RREF', guacyra)
 
-Rule(Matrix(_{m=Integer}, _{n=Integer}, _{f=Function}),
+Rule(Matrix(_{m=Int}, _{n=Int}, _{f=Function}),
 function(m, n, f)
   local rs = Matrix()
   for i=1,m[1] do
@@ -1680,10 +1680,10 @@ local function bird(A, X)
   local d = diagonal(X)
   for i=1,m do for j=1,n do
     if j<i then
-      X[i][j] = Integer(0)
+      X[i][j] = Int(0)
     end
   end end
-  local nd = List(Integer(0))
+  local nd = List(Int(0))
   for i=n-1,1,-1 do
     nd[#nd+1] = Plus(d[i+1], nd[#nd]):eval()
   end
