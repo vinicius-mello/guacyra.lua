@@ -49,6 +49,29 @@ test[#test+1] = function()
   assert(r==(9+4*Sqrt(2)+4*Sqrt(3)+2*Sqrt(6)):eval())
 end
 
+test[#test+1] = function()
+  local A = Matrix(4, 4, 
+    function(i, j) return 1/(i+j-1) end):eval()
+  local r = Det(A):eval()
+  print(Det(A), '=', r)
+  assert(r==Rat(1,6048000))
+end
+
+test[#test+1] = function()
+  local A = Matrix({1,2,12},{-2,3,11},{-1,4,18})
+  local r = RREF(A):eval()
+  print(RREF(A), '=', r)
+  assert(r==Matrix({1,0,2},{0,1,5},{0,0,0}))
+end
+
+test[#test+1] = function()
+  local x,y = Symbols('x y')
+  local exp = 1+x+x^2+3*x*y+y^2+y
+  local r = LaTeX(exp):eval()
+  print(LaTeX(exp:eval()), '=', r)
+  assert(r== String(''))
+end
+
 for i=1,#test do
   print('Test ',i)
   local time = os.clock()

@@ -385,8 +385,6 @@ local function copy(ex)
     local r = {}
     for i = 0, #ex do r[i] = copy(ex[i]) end
     setmetatable(r, guacyra)
-    --rawset(r, 'def', rawget(r, 'def'))
-    --rawset(r, 'value', rawget(r, 'value'))
     return r
   end
 end
@@ -1369,6 +1367,69 @@ function(a)
   end
 end)
 
+local function lessMath(u, v)
+  if isNumeric(u) and isNumeric(v) then
+    return numericValue(u) < numericValue(v)
+  end
+  if isSymbol(u) and isSymbol(v) then
+    return u[1] < v[1]
+  end
+  if (u[0] == Plus and v[0] == Plus)
+  or (u[0] == Times and v[0] == Times) then
+    local m = #u
+    local n = #v
+    while m > 0 and n > 0 do
+      if equal(u[m], v[n]) then
+        m = m - 1
+        n = n - 1
+      else
+        return lessMath(u[m], v[n])
+      end
+    end
+    return m < n
+  end
+  if u[0] == Power and v[0] == Power then
+    if equal(u[2], v[2]) then
+      return lessMath(u[1], v[1])
+    else
+      return lessMath(v[2], u[2]) -- order
+    end
+  end
+  if u[0] == v[0] then
+    local m = #u
+    local n = #v
+    local i = 1
+    while i <= m and i <= n do
+      if equal(u[i], v[i]) then
+        i = i + 1
+      else
+        return lessMath(u[i], v[i])
+      end
+    end
+    return m < n
+  end
+  if u[0] == Times then
+    return lessMath(u, Times(v))
+  elseif v[0] == Times then
+    return lessMath(Times(u), v)
+  end
+  if u[0] == Power then
+    return lessMath(u, Power(v, 1))
+  elseif v[0] == Power then
+    return lessMath(Power(u, 1), v)
+  end
+  if u[0] == Plus then
+    return lessMath(u, Plus(v))
+  elseif v[0] == Plus then
+    return lessMath(Plus(u), v)
+  end
+  if isNumeric(u) and not isNumeric(v) then
+    return false
+  elseif not isNumeric(u) and isNumeric(v) then
+    return true
+  end
+end
+
 local LaTeXP = Symbol("LaTeXP")
 local LaTeX = Symbol("LaTeX")
 guacyra.LaTeX = LaTeX
@@ -1447,6 +1508,9 @@ function(a, b)
 end)
 Rule(LaTeX(Plus(__{c=_})),
 function(c)
+  c = copy(c)
+  table.sort(c, lessMath)
+  print(c)
   local s = ''
   for i=1,#c do
     local t = LaTeX(c[i]):eval()
@@ -1743,6 +1807,56 @@ local function det(A)
 end
 
 Rule(Det(_{A=Matrix}), det)
+
+local function rref(A)
+  local m, n = dims(A)
+  local ii = 1
+  for j=1,n do
+    local i = ii
+    while i<=m and equal(A[i][j], Int(0)) do
+      i = i+1
+    end
+    if i <= m then
+      if i ~= ii then
+        A[i], A[ii] = A[ii], A[i]
+      end
+      local k = (1/A[ii][j]):eval()
+      if not equal(k, Int(1)) then
+        A[ii][j] = Int(1)
+        for jj = j+1,n do
+          A[ii][jj] = k*A[ii][jj]:eval()
+        end
+      end
+      for i=ii-1,1,-1 do
+        local k = Times(-1, A[i][j]/A[ii][j]):eval()
+        if not equal(k, Int(0)) then
+          A[i][j] = Int(0)
+          for jj=j+1,n do 
+            A[i][jj] = (A[i][jj]+k*A[ii][jj]):eval()
+          end
+        end
+      end
+      for i=ii+1,m do
+        local k = Times(-1, A[i][j]/A[ii][j]):eval()
+        if not equal(k, Int(0)) then
+          A[i][j] = Int(0)
+          for jj=j+1,n do 
+            A[i][jj] = (A[i][jj]+k*A[ii][jj]):eval()
+          end
+        end
+      end
+      if ii == m then break end
+      ii = ii + 1
+    end
+  end
+end
+
+Rule(RREF(_{A=Matrix}),
+function(A)
+  local B = copy(A)
+  rref(B)
+  return B
+end)
 
 guacyra.import = function()
   for k,v in pairs(guacyra) do
