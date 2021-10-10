@@ -149,7 +149,7 @@ end
 
 local Int = makeAtom('Int')
 local Rat = makeAtom('Rat')
-local String = makeAtom('String')
+local Str = makeAtom('Str')
 local Boolean = makeAtom('Boolean')
 local Function = makeAtom('Function')
 
@@ -157,7 +157,7 @@ local List, _, __, ___
 guacyra.Symbol = Symbol
 guacyra.Int = Int
 guacyra.Rat = Rat
-guacyra.String = String
+guacyra.Str = Str
 guacyra.Boolean = Boolean
 guacyra.Function = Function
 
@@ -170,14 +170,14 @@ end
 
 local function isAtomHead(e)
   return e == Symbol or e == Int or
-    e == Rat or e == String or
+    e == Rat or e == Str or
     e == Boolean or e == Function
 end
 
 local function isAtom(e)
   local h = e[0]
   return h == Symbol or h == Int or
-    h == Rat or h == String or
+    h == Rat or h == Str or
     h == Boolean or h == Function
 end
 guacyra.isAtom = isAtom
@@ -226,7 +226,7 @@ local function conv(a)
     if type(a) == 'number' then
       a = Int(floor(a))
     elseif type(a) == 'string' then
-      a = String(a)
+      a = Str(a)
     elseif type(a) == 'boolean' then
       a = Boolean(a) 
     elseif type(a) == 'table' then
@@ -277,7 +277,7 @@ makeExp = function(h, ...)
         type = v
       end
     end
-    t[1]=String(key)
+    t[1]=Str(key)
     if type ~= _ then
       t[2] = type
     end
@@ -325,7 +325,7 @@ tostr = function(e)
   if not isObject(e) then return tostring(e) end
   if isAtom(e) then
     if e[0] == Symbol then return e[1] end
-    if e[0] == String then return e[1] end
+    if e[0] == Str then return e[1] end
     if e[0] == Int then return '' .. e[1] end
     if e[0] == Rat then return '' .. e[1] .. '/' .. e[2] end
     if e[0] == Boolean then
@@ -531,7 +531,7 @@ local function less(u, v)
   elseif isSymbol(u) and equal(u, v[0]) then
     return true
   end
-  if u[0] == String and v[0] == String then
+  if u[0] == Str and v[0] == Str then
     return u[1] < v[1]
   end
   -- Catch all
@@ -921,13 +921,13 @@ Rule(Cat(___{c=_}),
 function(c)
   local t = ""
   for i = 1, #c do
-    if isAtom(c[i]) and c[i][0] == String then
+    if isAtom(c[i]) and c[i][0] == Str then
       t = t .. (c[i][1])
     else
       t = t .. (c[i]:tostring())
     end
   end
-  return String(t)
+  return Str(t)
 end)
 Rule(Range(_{a=Int}, _{b=Int}),
 function(a, b)
@@ -1563,19 +1563,19 @@ Rule(LaTeX(Times(_{p=Rat}, _{a=Symbol})),
 function(p, a)
   if p[1] < 0 then
     local s = (LaTeX(Times(-p[1], a)):eval())[1]
-    return String('-\\frac{'..s..'}{'..p[2]..'}')
+    return Str('-\\frac{'..s..'}{'..p[2]..'}')
   else
     local s = (LaTeX(Times(p[1], a)):eval())[1]
-    return String('\\frac{'..s..'}{'..p[2]..'}')
+    return Str('\\frac{'..s..'}{'..p[2]..'}')
   end
 end)
 Rule(LaTeX(_{p=Rat}),
 function(p)
   local a, b = p[1], p[2]
   if a<0 then
-    return String('-\\frac{'..(-a)..'}{'..b..'}')
+    return Str('-\\frac{'..(-a)..'}{'..b..'}')
   else
-    return String('\\frac{'..(a)..'}{'..b..'}')
+    return Str('\\frac{'..(a)..'}{'..b..'}')
   end
 end)
 Rule(LaTeX(Times(-1,__{a=_})),
@@ -1677,7 +1677,7 @@ function(c)
   local pp = apply(Plus, c)
   if isPolynomial(pp, vars) then
     local p, s = expToPoly(pp, vars)
-    return String(formatPoly(p, s))
+    return Str(formatPoly(p, s))
   end
   local s = ''
   for i=1,#c do
@@ -1687,11 +1687,11 @@ function(c)
     end
     s = s..t[1]
   end
-  return String(s)
+  return Str(s)
 end)
 Rule(LaTeX(_{a=_}),
 function(a)
-  return String(a:tostring())
+  return Str(a:tostring())
 end)
 
 local Diff, Derivative, Sin, Cos, Exp, Log, Pi = 
@@ -1797,7 +1797,7 @@ function(f, y, x)
   return Times(Derivative(f)(1)(y), Diff(y, x))
 end)
 Rule(LaTeX(Pi),
-function() return String('\\pi') end, Pi)
+function() return Str('\\pi') end, Pi)
 Rule(LaTeX(Exp(_{a=_})),
 function(a)
   return Cat('e^{', LaTeX(a), '}')
@@ -1868,7 +1868,7 @@ function(rs)
     t = t..' \\\\'
   end
   return Cat('\\left\\[\\begin{matrix}',
-    String(t),
+    Str(t),
     '\\end{matrix}\\right\\]')
 end, Matrix)
 

@@ -69,7 +69,7 @@ test[#test+1] = function()
   local exp = -1+2*x+x^2-3*x*y+y^2+y
   local r = LaTeX(exp):eval()
   print(LaTeX(exp:eval()), '=', r)
-  assert(r== String('x^2-3xy+y^2+2x+y-1'))
+  assert(r== Str('x^2-3xy+y^2+2x+y-1'))
 end
 
 for i=1,#test do
