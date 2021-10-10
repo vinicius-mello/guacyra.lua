@@ -150,16 +150,16 @@ end
 local Int = makeAtom('Int')
 local Rat = makeAtom('Rat')
 local Str = makeAtom('Str')
-local Boolean = makeAtom('Boolean')
-local Function = makeAtom('Function')
+local Bool = makeAtom('Bool')
+local Fun = makeAtom('Fun')
 
 local List, _, __, ___
 guacyra.Symbol = Symbol
 guacyra.Int = Int
 guacyra.Rat = Rat
 guacyra.Str = Str
-guacyra.Boolean = Boolean
-guacyra.Function = Function
+guacyra.Bool = Bool
+guacyra.Fun = Fun
 
 -- lua 5.3 workaround
 local unpack = unpack or table.unpack
@@ -171,14 +171,14 @@ end
 local function isAtomHead(e)
   return e == Symbol or e == Int or
     e == Rat or e == Str or
-    e == Boolean or e == Function
+    e == Bool or e == Fun
 end
 
 local function isAtom(e)
   local h = e[0]
   return h == Symbol or h == Int or
     h == Rat or h == Str or
-    h == Boolean or h == Function
+    h == Bool or h == Fun
 end
 guacyra.isAtom = isAtom
 
@@ -187,10 +187,10 @@ local function isSymbol(e)
 end
 guacyra.isSymbol = isSymbol
 
-local function isFunction(e)
-  return e[0] == Function
+local function isFun(e)
+  return e[0] == Fun
 end
-guacyra.isFunction = isFunction
+guacyra.isFun = isFun
 
 local ruleCount = 0
 
@@ -228,11 +228,11 @@ local function conv(a)
     elseif type(a) == 'string' then
       a = Str(a)
     elseif type(a) == 'boolean' then
-      a = Boolean(a) 
+      a = Bool(a) 
     elseif type(a) == 'table' then
       a = makeExp(List, unpack(a))
     elseif type(a) == 'function' then
-      a = Function(a)
+      a = Fun(a)
     end
   end
   return a
@@ -272,7 +272,7 @@ makeExp = function(h, ...)
     local key = ''
     local type = _
     for k,v in pairs(t[1]) do
-      if isSymbol(v) or isFunction(v) then
+      if isSymbol(v) or isFun(v) then
         key = k
         type = v
       end
@@ -306,12 +306,12 @@ guacyra.Error = Error
 local Null = Symbol('Null')
 guacyra.Null = Null
 Blank = Symbol('Blank')
-local True = Boolean(true)
+local True = Bool(true)
 guacyra.True = True
-local False = Boolean(false)
+local False = Bool(false)
 guacyra.False = False
 local function test(v) 
-  if isObject(v) and v[0]==Boolean then
+  if isObject(v) and v[0]==Bool then
     return v[1]
   end
   return v
@@ -328,14 +328,14 @@ tostr = function(e)
     if e[0] == Str then return e[1] end
     if e[0] == Int then return '' .. e[1] end
     if e[0] == Rat then return '' .. e[1] .. '/' .. e[2] end
-    if e[0] == Boolean then
+    if e[0] == Bool then
       if e[1] then
         return 'True'
       else
         return 'False'
       end
     end
-    if e[0] == Function then
+    if e[0] == Fun then
       return e.name or tostring(e[1])
     end
   end
@@ -570,7 +570,7 @@ local function matchR(ex, pat, cap)
     local name = pat[1][1]
     local head = pat[2]
     if head ~= nil then
-      if isFunction(head) and not test(head[1](ex)) then
+      if isFun(head) and not test(head[1](ex)) then
         return false
       elseif isSymbol(head) and not equal(ex[0], head) then
         return false
@@ -596,7 +596,7 @@ local function matchR(ex, pat, cap)
       for j = i, #ex do
         exr[#exr + 1] = ex[j]
         if head ~= nil then
-          if isFunction(head) and not test(head[1](ex[j])) then
+          if isFun(head) and not test(head[1](ex[j])) then
             return false
           elseif isSymbol(head) and not equal(ex[j][0], head) then
             return false
@@ -665,7 +665,7 @@ local eval
 local function evalR(e)
   local head = eval(e[0])
   local ex = head()
-  if head[0] == Function then
+  if head[0] == Fun then
     for i = 1, #e do ex[i] = eval(e[i]) end
     return eval(head[1](unpack(ex)))
   end
@@ -816,9 +816,9 @@ end
 local Equal, Less = 
   Symbols('Equal Less', guacyra)
 Rule(Equal(_{a=_}, _{b=_}),
-function(a, b) return Boolean(equal(a, b)) end)
+function(a, b) return Bool(equal(a, b)) end)
 Rule(Less(_{a=_}, _{b=_}),
-function(a, b) return Boolean(less(a, b)) end)
+function(a, b) return Bool(less(a, b)) end)
 
 local function apply(a, b)
   setmetatable(b, guacyra)
@@ -957,9 +957,9 @@ guacyra.__mul = function(a, b) return Times(a, b) end
 guacyra.__div = function(a, b) return Times(a, Power(b, -1)) end
 guacyra.__pow = function(a, b) return Power(a, b) end
 
-local NumericQ = Function(
+local NumericQ = Fun(
 function(ex)
-  return Boolean(isNumeric(ex))
+  return Bool(isNumeric(ex))
 end)
 guacyra.NumericQ = NumericQ
 
@@ -1822,7 +1822,7 @@ end, Derivative)
 local Matrix, Dot, Det, RREF = 
   Symbols('Matrix Dot Det RREF', guacyra)
 
-Rule(Matrix(_{m=Int}, _{n=Int}, _{f=Function}),
+Rule(Matrix(_{m=Int}, _{n=Int}, _{f=Fun}),
 function(m, n, f)
   local rs = Matrix()
   for i=1,m[1] do
