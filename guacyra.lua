@@ -445,6 +445,11 @@ local function numericValue(e)
   end
 end
 
+local Mono = Symbol('Mono')
+guacyra.Mono = Mono
+local Poly = Symbol('Poly')
+guacyra.Poly = Poly
+
 -- Joel S. Cohen, Computer Algebra and Symbolic Computation: Mathematical Methods
 local function less(u, v)
   -- O1
@@ -477,6 +482,10 @@ local function less(u, v)
     else
       return less(u[1], v[1])
     end
+  end
+  -- O5.5
+  if u[0]==Mono and v[0]==Mono then
+    return Mono.order(u, v)
   end
   -- O6
   if u[0] == v[0] then
@@ -1367,6 +1376,75 @@ function(a)
   end
 end)
 
+local function deg(m) 
+  local r = 0
+  local l = m[2]
+  for i=1,#l do
+    r = r+l[i][1]
+  end
+  return r
+end
+
+local function deglex(m1, m2)
+  local d1, d2 = deg(m1), deg(m2)
+  if d1<d2 then 
+    return false
+  elseif d1>d2 then
+    return true
+  end
+  return m1[2]>m2[2]
+end
+
+Mono.order = deglex
+
+Rule(Power(Mono(_{c=NumericQ}, _{e=List}), _{p=Int}),
+function(c, e, p) 
+  e = copy(e)
+  for i=1,#e do e[i] = (e[i]*p):eval() end
+  return Mono((c^p):eval(), e)
+end, Mono)
+
+Rule(Times(__{m=Mono}),
+function(m)
+  local l = List()
+  local c = Int(1)
+  for i=1,#m do
+    c = c*m[i][1]:eval()
+    local n = m[i][2]
+    for j=1,#n do
+      if not l[j] then l[j] = Int(0) end 
+      l[j] = (l[j]+n[j]):eval() 
+    end
+  end
+  return Mono(c, l)
+end, Mono)
+
+Rule(Times(_{c=NumericQ}, __{m=Mono}),
+function(c, m)
+  local l = List()
+  for i=1,#m do
+    c = c*m[i][1]:eval()
+    local n = m[i][2]
+    for j=1,#n do
+      if not l[j] then l[j] = Int(0) end 
+      l[j] = (l[j]+n[j]):eval() 
+    end
+  end
+  return Mono(c, l)
+end, Mono)
+
+Poly.orderless = true
+Poly.flat = true
+Rule(Poly(_{c=NumericQ}, ___{m=Mono}),
+function(c, m)
+  local n
+  if #m>0 then
+    n = #m[1][2]
+  end
+  local l = List()
+  for i=1,n do l[#l+1] = Int(0) end
+  return Poly(Mono(c, l), m)
+end)
 local function lessMath(u, v)
   if isNumeric(u) and isNumeric(v) then
     return numericValue(u) < numericValue(v)
@@ -1428,6 +1506,48 @@ local function lessMath(u, v)
   elseif not isNumeric(u) and isNumeric(v) then
     return true
   end
+end
+
+local function isPolynomial(p, var)
+  if isSymbol(p) then
+    var[p[1]] = p
+    return true
+  elseif isNumeric(p) then
+    return true 
+  elseif p[0]==Plus or p[0]==Times then
+    for i=1,#p do
+      if not isPolynomial(p[i], var) then
+        return false
+      end
+    end
+    return true 
+  elseif p[0]==Power then
+    if isPolynomial(p[1], var) 
+      and p[2][0]==Int and p[2][1]>0 then
+      return true
+    end
+  end
+  return false
+end
+
+local function expToPoly(p, var)
+  local s = {}
+  for k,v in pairs(var) do
+    s[#s+1] = k
+  end
+  table.sort(s)
+  local subs = {}
+  local n = #s
+  local l = List()
+  for i=1,n do l[#l+1] = Int(0) end
+  for i=1,n do 
+    local ll = copy(l)
+    ll[i] = Int(1)
+    subs[s[i]] = Mono(1, ll)
+  end
+  subs['Plus'] = Poly
+  local r = p:subst(subs)
+  return r:eval(), s
 end
 
 local LaTeXP = Symbol("LaTeXP")
@@ -1506,11 +1626,59 @@ Rule(LaTeX(Power(_{a=_}, _{b=_})),
 function(a, b)
     return Cat(LaTeXP(a), '^{', LaTeX(b),'}')
 end)
+
+local function formatPoly(p, vars)
+if p[0]==Mono then
+    local s
+    if equal(p[1], Int(1)) then
+      if deg(p)==0 then return '1' end
+      s = ''
+    elseif equal(p[1], Int(-1)) then
+      if deg(p)==0 then return '-1' end
+      s = '-'
+    else 
+      s = (LaTeX(p[1]):eval())[1]
+    end
+    local l = p[2]
+    for i=1,#l do
+      local ll = l[i]
+      if ll[1]==1 then
+        s = s..vars[i] 
+      elseif ll[1]>1 then
+        local ls = tostring(ll)
+        if #ls==1 then
+          s = s..vars[i]..'^'..ls        
+        else
+          s = s..vars[i]..'^{'..ls..'}'
+        end
+      end
+    end
+    return s
+  elseif p[0]==Poly then
+    local s
+    for i=1,#p do
+      if i==1 then
+        s = formatPoly(p[i], vars)
+      else
+        local ss = formatPoly(p[i], vars)
+        if ss:sub(1,1)~='-' then
+          s = s..'+'
+        end
+        s = s..ss
+      end
+    end
+    return s
+  end
+end
+
 Rule(LaTeX(Plus(__{c=_})),
 function(c)
-  c = copy(c)
-  table.sort(c, lessMath)
-  print(c)
+  local vars = {}
+  local pp = apply(Plus, c)
+  if isPolynomial(pp, vars) then
+    local p, s = expToPoly(pp, vars)
+    return String(formatPoly(p, s))
+  end
   local s = ''
   for i=1,#c do
     local t = LaTeX(c[i]):eval()
