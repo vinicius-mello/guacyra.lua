@@ -1530,6 +1530,43 @@ local function isPolynomial(p, var)
   return false
 end
 
+local function isMonomial(p, var)
+  if isSymbol(p) then
+    var[p[1]] = p
+    return true
+  elseif isNumeric(p) then
+    return true 
+  elseif p[0]==Power then
+    if isSymbol(p[1]) 
+      and p[2][0]==Int and p[2][1]>0 then
+      var[p[1][1]] = p[1]
+      return true
+    end
+  elseif p[0]==Times then
+    for i=1,#p do
+      if not isMonomial(p[i], var) then
+        return false
+      end
+    end
+    return true 
+  end
+  return false
+end
+
+local function isExpandedPolynomial(p, var)
+  if isMonomial(p, var) then
+    return true
+  elseif p[0]==Plus then
+    for i=1,#p do
+      if not isMonomial(p[i], var) then
+        return false
+      end
+    end
+    return true 
+  end
+  return false
+end
+
 local function expToPoly(p, var)
   local s = {}
   for k,v in pairs(var) do
@@ -1675,7 +1712,7 @@ Rule(LaTeX(Plus(__{c=_})),
 function(c)
   local vars = {}
   local pp = apply(Plus, c)
-  if isPolynomial(pp, vars) then
+  if isExpandedPolynomial(pp, vars) then
     local p, s = expToPoly(pp, vars)
     return Str(formatPoly(p, s))
   end
