@@ -58,10 +58,12 @@ test[#test+1] = function()
 end
 
 test[#test+1] = function()
-  local A = Matrix({1,2,12},{-2,3,11},{-1,4,18})
+  local a, b, c = Symbols('a b c')
+  local A = Matrix({1,2,12,a},{-2,3,11,b},{-1,4,18,c})
   local r = RREF(A):eval()
-  print(RREF(A), '=', r)
-  assert(r==Matrix({1,0,2},{0,1,5},{0,0,0}))
+  r = Numerator(r[3][4]):eval()
+  print('Numerator(RREF(A)[3][4])=', r)
+  assert(r==Plus(Times(-5,a),Times(-6,b),Times(7,c)))
 end
 
 test[#test+1] = function()
@@ -70,6 +72,21 @@ test[#test+1] = function()
   local r = LaTeX(exp):eval()
   print(LaTeX(exp:eval()), '=', r)
   assert(r== Str('x^2-3xy+y^2+2x+y-1'))
+end
+
+test[#test+1] = function()
+  local a, b, c = Symbols('a b c')
+  local exp = Union(Set(a,b,c),Set(a,b,1,2))
+  local r = exp:eval()
+  print(exp, '=', r)
+  exp = Intersection(Set(a,b,c),Set(a,b,1,2))
+  r = exp:eval()
+  print(exp, '=', r)
+  exp = In(a, Set(a,b,c))
+  print(exp, exp:eval())
+  exp = In(c, Set(a,b))
+  print(exp, exp:eval())
+  assert(r== Set(a, b))
 end
 
 for i=1,#test do

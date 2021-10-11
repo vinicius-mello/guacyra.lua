@@ -1376,6 +1376,62 @@ function(a)
   end
 end)
 
+local Set, In, Union, Intersection = 
+  Symbols('Set In Union Intersection', guacyra)
+Set.orderless = true
+Rule(Set(__{c=_}),
+function(c)
+  local r = Set(c[1])
+  local flag = false
+  for i = 2,#c do
+    if not equal(c[i], c[i-1]) then
+      r[#r+1] = c[i]
+    else
+      flag = true
+    end
+  end
+  if flag then 
+    return r
+  end
+  return nil
+end)
+
+Rule(Union(_{a=Set}, _{b=Set}),
+function(a, b)
+  local r = copy(a)
+  for i=1,#b do r[#r+1] = b[i] end
+  return r
+end)
+
+Rule(Intersection(_{a=Set}, _{b=Set}),
+function(a, b)
+  local r = Set()
+  local i = 1
+  local j = 1
+  while i<=#a and j<=#b do
+    if less(a[i],b[j]) then 
+      i = i+1
+    elseif less(b[j], a[i]) then
+      j = j+1
+    else
+      r[#r+1] = a[i]
+      i = i+1
+      j = j+1
+    end
+  end
+  return r
+end)
+
+Rule(In(_{a=_}, _{b=Set}),
+function(a, b)
+  for i=1,#b do
+    if equal(a, b[i]) then
+      return True
+    end
+  end
+  return False
+end)
+
 local function deg(m) 
   local r = 0
   local l = m[2]
@@ -2022,6 +2078,9 @@ local function rref(A)
       i = i+1
     end
     if i <= m then
+      if not isNumeric(A[i][j]) then
+        return
+      end
       if i ~= ii then
         A[i], A[ii] = A[ii], A[i]
       end
@@ -2037,7 +2096,7 @@ local function rref(A)
         if not equal(k, Int(0)) then
           A[i][j] = Int(0)
           for jj=j+1,n do 
-            A[i][jj] = (A[i][jj]+k*A[ii][jj]):eval()
+            A[i][jj] = Expand(A[i][jj]+k*A[ii][jj]):eval()
           end
         end
       end
@@ -2046,7 +2105,7 @@ local function rref(A)
         if not equal(k, Int(0)) then
           A[i][j] = Int(0)
           for jj=j+1,n do 
-            A[i][jj] = (A[i][jj]+k*A[ii][jj]):eval()
+            A[i][jj] = Expand(A[i][jj]+k*A[ii][jj]):eval()
           end
         end
       end
