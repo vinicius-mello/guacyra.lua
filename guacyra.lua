@@ -913,9 +913,9 @@ function(a, b)
   return apply(List, s)
 end)
 
-local Cat, Range, RandomInt = 
-  Symbols('Cat Range RandomInt', guacyra)
-RandomInt.def = math.huge
+local Cat, Range, RandInt = 
+  Symbols('Cat Range RandInt', guacyra)
+RandInt.def = math.huge
 
 Rule(Cat(___{c=_}),
 function(c)
@@ -936,11 +936,11 @@ function(a, b)
     t[#t+1] = Int(i) end
   return t
 end)
-Rule(RandomInt({_{a=Int}, _{b=Int}}),
+Rule(RandInt({_{a=Int}, _{b=Int}}),
 function(a, b)
   return Int(random(a[1], b[1]))
 end)
-Rule(RandomInt({_{a=Int}, _{b=Int}},
+Rule(RandInt({_{a=Int}, _{b=Int}},
   _{n=Int}),
 function(a, b, n)
   local t = List()
@@ -1646,6 +1646,9 @@ end
 local LaTeXP = Symbol("LaTeXP")
 local LaTeX = Symbol("LaTeX")
 guacyra.LaTeX = LaTeX
+guacyra.tex = function(e)
+  return LaTeX(e):eval()[1]
+end
 Rule(LaTeXP(Plus(__{c=_})),
 function(c)
   return Cat('(', LaTeX(Plus(c)), ')')
@@ -1952,6 +1955,7 @@ end
 Rule(LaTeX(Matrix(__{rs=_})),
 function(rs)
   local t = ''
+  local n = #rs[1]
   for i=1,#rs do
     local r = rs[i]
     for j=1,#r do
@@ -1960,9 +1964,10 @@ function(rs)
     end
     t = t..' \\\\'
   end
-  return Cat('\\left\\[\\begin{matrix}',
+  local fmt = '{'..string.rep('r', n)..'}'
+  return Cat('\\left[\\begin{array}', fmt,
     Str(t),
-    '\\end{matrix}\\right\\]')
+    '\\end{array}\\right]')
 end, Matrix)
 
 function dot(A, B)
