@@ -67,6 +67,13 @@ test[#test+1] = function()
 end
 
 test[#test+1] = function()
+  local A = Matrix({1,2,12},{-2,3,11},{-1,4,18})
+  local r = RREF(A):eval()
+  print('RREF(A)=', r)
+  print('Rank(A)=', Rank(A):eval())
+end
+
+test[#test+1] = function()
   local x,y = Symbols('x y')
   local exp = -1+2*x+x^2-3*x*y+y^2+y
   local r = LaTeX(exp):eval()
@@ -87,6 +94,12 @@ test[#test+1] = function()
   exp = In(c, Set(a,b))
   print(exp, exp:eval())
   assert(r== Set(a, b))
+end
+
+test[#test+1] = function()
+  local exp = Union(Set('a','b','c'),Set('a','b',1,2))
+  local r = exp:eval()
+  print(exp, '=', r)
 end
 
 for i=1,#test do

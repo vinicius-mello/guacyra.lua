@@ -1915,8 +1915,8 @@ function(f, x)
   return Cat(LaTeX(f), "{'}(", LaTeX(x),')')
 end, Derivative)
 
-local Matrix, Dot, Det, RREF = 
-  Symbols('Matrix Dot Det RREF', guacyra)
+local Matrix, Dot, Det, RREF, Rank = 
+  Symbols('Matrix Dot Det RREF Rank', guacyra)
 
 Rule(Matrix(_{m=Int}, _{n=Int}, _{f=Fun}),
 function(m, n, f)
@@ -2114,10 +2114,14 @@ local function rref(A)
           end
         end
       end
-      if ii == m then break end
+      if ii == m then
+        ii = m+1
+        break
+      end
       ii = ii + 1
     end
   end
+  return ii-1
 end
 
 Rule(RREF(_{A=Matrix}),
@@ -2125,6 +2129,12 @@ function(A)
   local B = copy(A)
   rref(B)
   return B
+end)
+
+Rule(Rank(_{A=Matrix}),
+function(A)
+  local B = copy(A)
+  return Int(rref(B))
 end)
 
 guacyra.import = function()
