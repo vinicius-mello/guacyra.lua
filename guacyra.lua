@@ -325,7 +325,7 @@ tostr = function(e)
   if not isObject(e) then return tostring(e) end
   if isAtom(e) then
     if e[0] == Symbol then return e[1] end
-    if e[0] == Str then return e[1] end
+    if e[0] == Str then return "'"..e[1].."'" end
     if e[0] == Int then return '' .. e[1] end
     if e[0] == Rat then return '' .. e[1] .. '/' .. e[2] end
     if e[0] == Bool then
@@ -408,8 +408,10 @@ local function equal(ea, eb)
   return equalR(ea, eb)
 end
 guacyra.equal = equal
-guacyra.__eq = equal
-
+--guacyra.__eq = equal
+guacyra.eq = function(a, b)
+  return equal(a, conv(b))
+end
 local function has(ex, subex)
   if isAtom(ex) then
     return equal(ex, subex)
@@ -455,6 +457,9 @@ local function less(u, v)
   -- O1
   if isNumeric(u) and isNumeric(v) then
     return numericValue(u) < numericValue(v)
+  end
+  if u[0] == Str and v[0] == Str then
+    return u[1] < v[1]
   end
   -- O2
   if isSymbol(u) and isSymbol(v) then
@@ -531,18 +536,17 @@ local function less(u, v)
   elseif isSymbol(u) and equal(u, v[0]) then
     return true
   end
-  if u[0] == Str and v[0] == Str then
-    return u[1] < v[1]
-  end
   -- Catch all
   return tostring(u) < tostring(v)
 end
 
 guacyra.less = less
-guacyra.__lt = less
+guacyra.lt = function(a, b)
+  return less(a, conv(b))
+end
 
-guacyra.__le = function(a, b)
-  return less(a, b) or equal(a, b)
+guacyra.le = function(a, b)
+  return guacyra.lt(a, b) or guacyra.eq(a, b)
 end
 
 guacyra.__index = guacyra
@@ -753,6 +757,7 @@ eval = function(e)
   end
 end
 guacyra.eval = eval
+guacyra.ev = eval
 local max_args = 10
 local function getArgs(fun)
   local args = {}
@@ -1448,7 +1453,7 @@ local function deglex(m1, m2)
   elseif d1>d2 then
     return true
   end
-  return m1[2]>m2[2]
+  return less(m2[2], m1[2])
 end
 
 Mono.order = deglex
