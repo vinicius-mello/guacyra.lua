@@ -325,7 +325,7 @@ tostr = function(e)
   if not isObject(e) then return tostring(e) end
   if isAtom(e) then
     if e[0] == Symbol then return e[1] end
-    if e[0] == Str then return "'"..e[1].."'" end
+    if e[0] == Str then return e[1] end
     if e[0] == Int then return '' .. e[1] end
     if e[0] == Rat then return '' .. e[1] .. '/' .. e[2] end
     if e[0] == Bool then
