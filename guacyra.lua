@@ -2142,6 +2142,51 @@ function(A)
   return Int(rref(B))
 end)
 
+local SubMatrix, Tuple = 
+  Symbols('SubMatrix Tuple', guacyra)
+
+Rule(SubMatrix(_{a=Matrix},
+  List(_{i1=Int},_{i2=Int}),
+  List(_{j1=Int},_{j2=Int})),
+function (a, i1, i2, j1, j2)
+  local r = Matrix()
+  for i=i1[1],i2[1] do
+    local l = List()
+    for j=j1[1],j2[1] do
+      l[#l+1] = a[i][j]
+    end
+    r[#r+1] = l
+  end
+  return r
+end)
+
+Rule(Tuple(_{a=Matrix}),
+function (a)
+  local m, n = dims(a)
+  local l = Tuple()
+  for i=1,m do
+    for j=1,n do
+      l[#l+1] = a[i][j]
+    end
+  end
+  return l
+end)
+
+Rule(LaTeX(Tuple(__{a=_})),
+function(a)
+  local s='('
+  for i=1,#a do
+    if i~=1 then
+      s = s..','
+    end
+    s = s..(LaTeX(a[i]):eval()[1])
+  end
+  s = s..')'
+  return Str(s)
+end
+,Tuple)
+
+
 guacyra.import = function()
   for k,v in pairs(guacyra) do
     if isObject(v) then
