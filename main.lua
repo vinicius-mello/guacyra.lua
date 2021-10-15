@@ -105,6 +105,9 @@ test[10] = function()
   exp = Tuple(r)
   r = exp:tex()
   print(exp, '=', r)
+  print(Transpose(A), Transpose(A):val())
+  A = Matrix({1,2},{3,4})
+  print(BlockMatrix({A,A},{A,A}):val())
   assert(r=='(3,4,4,5)')
 end
 

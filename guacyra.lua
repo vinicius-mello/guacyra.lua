@@ -362,7 +362,7 @@ tostr = function(e)
   end
   local s, cs
   if e[0] == List then
-    s, cs = '{', '}'
+    s, cs = '[', ']'
   else
     s = tostr(e[0]) .. '('
     cs = ')'
@@ -1790,10 +1790,38 @@ function(c)
   end
   return Str(s)
 end)
+
+Rule(LaTeX(Set(__{a=_})),
+function(a)
+  local s='\\{'
+  for i=1,#a do
+    if i~=1 then
+      s = s..','
+    end
+    s = s..(LaTeX(a[i]):eval()[1])
+  end
+  s = s..'\\}'
+  return Str(s)
+end)
+
+Rule(LaTeX(List(__{a=_})),
+function(a)
+  local s='['
+  for i=1,#a do
+    if i~=1 then
+      s = s..','
+    end
+    s = s..(LaTeX(a[i]):eval()[1])
+  end
+  s = s..']'
+  return Str(s)
+end)
+
 Rule(LaTeX(_{a=_}),
 function(a)
   return Str(a:tostring())
 end)
+
 
 local Diff, Derivative, Sin, Cos, Exp, Log, Pi = 
   Symbols('Diff Derivative Sin Cos Exp Log Pi', guacyra)
@@ -1935,25 +1963,6 @@ function(m, n, f)
   end
   return rs
 end)
-Rule(Matrix(_{m=List}),
-function(m)
-  local rs = Matrix()
-  if #m==0 or #m[1]==0 then
-    error('Empty list.')
-  end
-  local n = #m[1]
-  for i=1,#m do
-    local r = List()
-    for j=1,n do
-      if #m[i]~=n then
-        error('Not a matrix.')
-      end
-      r[j] = m[i][j]
-    end
-    rs[i] = r
-  end
-  return rs
-end)
 local function dims(m) 
   return #m, #m[1]
 end
@@ -1974,6 +1983,20 @@ function(rs)
     Str(t),
     '\\end{array}\\right]')
 end, Matrix)
+
+Rule(RandInt({_{a=Int}, _{b=Int}},
+  _{m=Int}, _{n=Int}),
+function(a, b, m, n)
+  local r = Matrix()
+  for i=1,m[1] do
+    local l = List()
+    for j=1,n[1] do
+      l[#l+1] = Int(random(a[1], b[1]))
+    end
+    r[#r+1] = l
+  end
+  return r
+end)
 
 function dot(A, B)
   local m, n = dims(A)
@@ -2142,8 +2165,8 @@ function(A)
   return Int(rref(B))
 end)
 
-local SubMatrix, Tuple = 
-  Symbols('SubMatrix Tuple', guacyra)
+local SubMatrix, Tuple, Transpose, BlockMatrix = 
+  Symbols('SubMatrix Tuple Transpose BlockMatrix', guacyra)
 
 Rule(SubMatrix(_{a=Matrix},
   List(_{i1=Int},_{i2=Int}),
@@ -2158,6 +2181,20 @@ function (a, i1, i2, j1, j2)
     r[#r+1] = l
   end
   return r
+end)
+
+Rule(SubMatrix(_{a=Matrix},
+  List(_{i1=Int},_{i2=Int}),
+  _{j1=Int}),
+function (a, i1, i2, j1)
+  return SubMatrix(a,{i1,i2},{j1,j1})
+end)
+
+Rule(SubMatrix(_{a=Matrix},
+  _{i1=Int},
+  List(_{j1=Int},_{j2=Int})),
+function (a, i1, j1, j2)
+  return SubMatrix(a,{i1,i1},{j1,j2})
 end)
 
 Rule(Tuple(_{a=Matrix}),
@@ -2186,6 +2223,40 @@ function(a)
 end
 ,Tuple)
 
+Rule(Transpose(_{a=Matrix}),
+function (a)
+  local m, n = dims(a)
+  local r = Matrix()
+  for j=1,n do
+    local l = List()
+    for i=1,m do
+      l[#l+1] = a[i][j]
+    end
+    r[#r+1] = l
+  end
+  return r
+end)
+
+Rule(BlockMatrix(__{a=List}),
+function (a)
+  local mb, nb = dims(a)
+  local r = Matrix()
+  local ir = 1
+  for ib=1,mb do
+    local m = #a[ib][1]
+    for i = 1,m do 
+      local l = List()
+      for jb=1,nb do
+        local mm, n = dims(a[ib][jb])
+        for j=1,n do
+          l[#l+1] = a[ib][jb][i][j]
+        end
+      end
+      r[#r+1] = l
+    end
+  end
+  return r
+end)
 
 guacyra.import = function()
   for k,v in pairs(guacyra) do
