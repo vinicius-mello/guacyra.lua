@@ -757,7 +757,7 @@ eval = function(e)
   end
 end
 guacyra.eval = eval
-guacyra.ev = eval
+guacyra.val = eval
 local max_args = 10
 local function getArgs(fun)
   local args = {}
