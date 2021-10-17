@@ -683,14 +683,14 @@ local function evalR(e, rec)
     if uphead.up then
       for j = 1, #uphead.up do
         tex = uphead.up[j](ex)
-        if tex then return eval(tex) end
+        if tex then return --[[eval]](tex) end
       end
     end
   end
   if lh.down then
     for j = 1, #lh.down do
       tex = lh.down[j](ex)
-      if tex then return eval(tex) end
+      if tex then return --[[eval]](tex) end
     end
   end
   return ex
@@ -1244,9 +1244,9 @@ end)
 
 Rule(Union(_{a=Set}, _{b=Set}),
 function(a, b)
-  local r = copy(a)
+  local r = Apply(List, a)
   for i=1,#b do r[#r+1] = b[i] end
-  return r
+  return Apply(Set, r)
 end)
 
 Rule(Intersection(_{a=Set}, _{b=Set}),
@@ -1427,29 +1427,29 @@ local function expToPoly(p, var)
   return r:eval(true), s
 end
 
-local LaTeXP = Symbol("LaTeXP")
-local LaTeX = Symbol("LaTeX")
-guacyra.LaTeX = LaTeX
+local TeXP = Symbol("TeXP")
+local TeX = Symbol("TeX")
+guacyra.TeX = TeX
 guacyra.tex = function(e)
-  return LaTeX(e)[1]
+  return TeX(e)[1]
 end
-Rule(LaTeXP(Plus(__{c=_})),
+Rule(TeXP(Plus(__{c=_})),
 function(c)
-  return Cat('(', LaTeX(Plus(c)), ')')
+  return Cat('(', TeX(Plus(c)), ')')
 end)
-Rule(LaTeXP(_{a=_}),
-function(a) return LaTeX(a) end)
-Rule(LaTeX(Times(_{p=Rat}, _{a=Symbol})),
+Rule(TeXP(_{a=_}),
+function(a) return TeX(a) end)
+Rule(TeX(Times(_{p=Rat}, _{a=Symbol})),
 function(p, a)
   if p[1] < 0 then
-    local s = (LaTeX(Times(-p[1], a)))[1]
+    local s = (TeX(Times(-p[1], a)))[1]
     return Str('-\\frac{'..s..'}{'..p[2]..'}')
   else
-    local s = (LaTeX(Times(p[1], a)))[1]
+    local s = (TeX(Times(p[1], a)))[1]
     return Str('\\frac{'..s..'}{'..p[2]..'}')
   end
 end)
-Rule(LaTeX(_{p=Rat}),
+Rule(TeX(_{p=Rat}),
 function(p)
   local a, b = p[1], p[2]
   if a<0 then
@@ -1458,53 +1458,53 @@ function(p)
     return Str('\\frac{'..(a)..'}{'..b..'}')
   end
 end)
-Rule(LaTeX(Times(-1,__{a=_})),
+Rule(TeX(Times(-1,__{a=_})),
 function(a) 
-  return Cat('-', LaTeXP(Times(a)))
+  return Cat('-', TeXP(Times(a)))
 end)
-Rule(LaTeX(Times(__{a=_})),
+Rule(TeX(Times(__{a=_})),
 function(a)
   local l = NumeratorDenominator(Times(a))
   if l[2][0]==Int then
-    return Apply(Cat,Map(LaTeXP,List(a)))
+    return Apply(Cat,Map(TeXP,List(a)))
   else
-    local num = LaTeX(l[1])
-    local den = LaTeX(l[2])
+    local num = TeX(l[1])
+    local den = TeX(l[2])
     return Cat('\\frac{',num,'}{',den,'}')
   end
 end)
-Rule(LaTeX(Power(_{a=_},_{b=Rat})),
+Rule(TeX(Power(_{a=_},_{b=Rat})),
 function(a, b)
   if b[1] == 1 then
     if b[2] == 2 then
-      return Cat('\\sqrt{', LaTeX(a), '}')
+      return Cat('\\sqrt{', TeX(a), '}')
     else
-      return Cat('\\sqrt['..b[2]..']{',LaTeX(a),'}')
+      return Cat('\\sqrt['..b[2]..']{',TeX(a),'}')
     end
   else
-    return Cat(LaTeXP(a),'^{', LaTeX(b), '}')
+    return Cat(TeXP(a),'^{', TeX(b), '}')
   end
 end)
-Rule(LaTeX(Power(_{a=_}, _{b=Int})),
+Rule(TeX(Power(_{a=_}, _{b=Int})),
 function(a, b)
   if b[1]<0 then
-    return Cat('\\frac{1}{',LaTeX(Power(a,-b[1])),'}')
+    return Cat('\\frac{1}{',TeX(Power(a,-b[1])),'}')
   else
     b = ''..b[1]
     if #b>1 then
-      return Cat(LaTeXP(a), '^{'..b..'}')
+      return Cat(TeXP(a), '^{'..b..'}')
     else
-      return Cat(LaTeXP(a), '^'..b)
+      return Cat(TeXP(a), '^'..b)
     end
   end
 end)
-Rule(LaTeX(Power(_{a=Symbol}, _{b=_})),
+Rule(TeX(Power(_{a=Symbol}, _{b=_})),
 function(a, b)
-  return Cat(a[1] .. '^{', LaTeX(b),'}')
+  return Cat(a[1] .. '^{', TeX(b),'}')
 end)
-Rule(LaTeX(Power(_{a=_}, _{b=_})),
+Rule(TeX(Power(_{a=_}, _{b=_})),
 function(a, b)
-    return Cat(LaTeXP(a), '^{', LaTeX(b),'}')
+    return Cat(TeXP(a), '^{', TeX(b),'}')
 end)
 
 local function formatPoly(p, vars)
@@ -1517,7 +1517,7 @@ local function formatPoly(p, vars)
       if deg(p)==0 then return '-1' end
       s = '-'
     else 
-      s = LaTeX(p[1])[1]
+      s = TeX(p[1])[1]
     end
     local l = p[2]
     for i=1,#l do
@@ -1551,7 +1551,7 @@ local function formatPoly(p, vars)
   end
 end
 
-Rule(LaTeX(Plus(__{c=_})),
+Rule(TeX(Plus(__{c=_})),
 function(c)
   local vars = {}
   local pp = Plus(c)
@@ -1561,7 +1561,7 @@ function(c)
   end
   local s = ''
   for i=1,#c do
-    local t = LaTeX(c[i])
+    local t = TeX(c[i])
     if t[1]:sub(1,1)~='-' and i~=1 then
       s = s..'+'
     end
@@ -1570,33 +1570,33 @@ function(c)
   return Str(s)
 end)
 
-Rule(LaTeX(Set(__{a=_})),
+Rule(TeX(Set(__{a=_})),
 function(a)
   local s='\\{'
   for i=1,#a do
     if i~=1 then
       s = s..','
     end
-    s = s..(LaTeX(a[i])[1])
+    s = s..(TeX(a[i])[1])
   end
   s = s..'\\}'
   return Str(s)
 end)
 
-Rule(LaTeX(List(__{a=_})),
+Rule(TeX(List(__{a=_})),
 function(a)
   local s='['
   for i=1,#a do
     if i~=1 then
       s = s..','
     end
-    s = s..LaTeX(a[i])[1]
+    s = s..TeX(a[i])[1]
   end
   s = s..']'
   return Str(s)
 end)
 
-Rule(LaTeX(_{a=_}),
+Rule(TeX(_{a=_}),
 function(a)
   return Str(a:tostring())
 end)
@@ -1703,27 +1703,27 @@ Rule(Diff(_{f=_}(_{y=_}), _{x=Symbol}),
 function(f, y, x)
   return Times(Derivative(f)(1)(y), Diff(y, x))
 end)
-Rule(LaTeX(Pi),
+Rule(TeX(Pi),
 function() return Str('\\pi') end, Pi)
-Rule(LaTeX(Exp(_{a=_})),
+Rule(TeX(Exp(_{a=_})),
 function(a)
-  return Cat('e^{', LaTeX(a), '}')
+  return Cat('e^{', TeX(a), '}')
 end, Exp)
-Rule(LaTeX(Log(_{a=_})),
+Rule(TeX(Log(_{a=_})),
 function(a)
-  return Cat('\\log{', LaTeX(a), '}')
+  return Cat('\\log{', TeX(a), '}')
 end, Log)
-Rule(LaTeX(Sin(_{a=_})),
+Rule(TeX(Sin(_{a=_})),
 function(a)
-  return Cat('\\sin{', LaTeX(a), '}')
+  return Cat('\\sin{', TeX(a), '}')
 end, Sin)
-Rule(LaTeX(Cos(_{a=_})),
+Rule(TeX(Cos(_{a=_})),
 function(a)
-  return Cat('\\cos{', LaTeX(a), '}')
+  return Cat('\\cos{', TeX(a), '}')
 end, Cos)
-Rule(LaTeX(Derivative(_{f=_})(1)(_{x=_})),
+Rule(TeX(Derivative(_{f=_})(1)(_{x=_})),
 function(f, x)
-  return Cat(LaTeX(f), "{'}(", LaTeX(x),')')
+  return Cat(TeX(f), "{'}(", TeX(x),')')
 end, Derivative)
 
 local Matrix, Dot, Det, RREF, Rank = 
@@ -1744,7 +1744,7 @@ end)
 local function dims(m) 
   return #m, #m[1]
 end
-Rule(LaTeX(Matrix(__{rs=_})),
+Rule(TeX(Matrix(__{rs=_})),
 function(rs)
   local t = ''
   local n = #rs[1]
@@ -1752,7 +1752,7 @@ function(rs)
     local r = rs[i]
     for j=1,#r do
       if j>1 then t = t..' & ' end 
-      t = t..(LaTeX(r[j])[1])
+      t = t..(TeX(r[j])[1])
     end
     t = t..' \\\\'
   end
@@ -1987,14 +1987,14 @@ function (a)
   return l
 end)
 
-Rule(LaTeX(Tuple(__{a=_})),
+Rule(TeX(Tuple(__{a=_})),
 function(a)
   local s='('
   for i=1,#a do
     if i~=1 then
       s = s..','
     end
-    s = s..(LaTeX(a[i])[1])
+    s = s..(TeX(a[i])[1])
   end
   s = s..')'
   return Str(s)

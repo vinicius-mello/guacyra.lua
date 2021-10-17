@@ -41,11 +41,11 @@ test[2] = function()
 end
 
 test[3] = function()
-  local x, y = Symbols('x y')
+  local x, y, f = Symbols('x y f')
   local one = Int(1)
   print(Sqrt(128)*Sqrt(6))
   print(Expand((x-y)*(x+y)))
-  print(Expand(x*(x+y)*y^3))
+  print((f(x)*(x+y)*f(y)))
 end
 
 test[4] = function()
@@ -56,8 +56,8 @@ test[4] = function()
 end
 
 
---[[
-test[1] = function()
+
+test[5] = function()
   print('Sum 1000')
   local s = List()
   for i=1, 1000 do 
@@ -68,7 +68,7 @@ test[1] = function()
   assert(sum:eq(500500))
 end
 
-test[2] = function()
+test[6] = function()
   print('Sum 1/n*(n+1)')
   local s = List()
   for i=1, 999 do
@@ -79,30 +79,27 @@ test[2] = function()
   assert(sum:eq(Rat(999,1000)))
 end
 
-test[3] = function()
+test[7] = function()
   local a, b, c = Symbols('a b c')
   local exp = Union(Set(a,b,c),Set(a,b,1,2))
-  print(exp, '=', r)
+  print('Union(Set(a,b,c),Set(a,b,1,2)) =', exp)
   exp = Intersection(Set(a,b,c),Set(a,b,1,2))
-  r = exp:val()
-  print(exp, '=', r)
+  print('Intersection(Set(a,b,c),Set(a,b,1,2)) =', exp)
   exp = In(a, Set(a,b,c))
-  print(exp, exp:val())
+  print('In(a, Set(a,b,c))', exp)
   exp = In(c, Set(a,b))
-  print(exp, exp:val())
-  assert(r:eq(Set(a, b)))
+  print('In(c, Set(a,b))', exp)
 end
 
-
-test[5] = function()
+test[8] = function()
   local A = Matrix(4, 4, 
     function(i, j) return 1/(i+j-1) end)
   local r = Det(A)
-  print(Det(A), '=', r)
+  print('Det(A) =', r)
   assert(r:eq(Rat(1,6048000)))
 end
 
-test[6] = function()
+test[9] = function()
   local a, b, c = Symbols('a b c')
   local A = Matrix({1,2,12,a},{-2,3,11,b},{-1,4,18,c})
   local r = RREF(A)
@@ -111,38 +108,38 @@ test[6] = function()
   assert(r:eq(Plus(Times(-5,a),Times(-6,b),Times(7,c))))
 end
 
-test[7] = function()
+
+test[10] = function()
   local A = Matrix({1,2,12},{-2,3,11},{-1,4,18})
   local r = RREF(A)
   print('RREF(A)=', r)
   print('Rank(A)=', Rank(A))
 end
 
-test[8] = function()
+test[11] = function()
   local x,y = Symbols('x y')
   local exp = -1+2*x+x^2-3*x*y+y^2+y
   print(exp)
-  local r = LaTeX(exp)
-  print(LaTeX(exp), '=', r)
-  assert(r:eq(Str('x^2-3xy+y^2+2x+y-1')))
+  local r = TeX(exp)
+  print('TeX(exp) =', r)
+  assert(r:eq('x^2-3xy+y^2+2x+y-1'))
 end
 
-test[9] = function()
+test[12] = function()
   local a, b, c = Symbols('a b c')
   local A = Matrix({1,2,3,4},{2,3,4,5},{3,4,5,6})
-  exp = SubMatrix(A, {1,2}, {3,4})
-  local r = exp
+  local exp = SubMatrix(A, {1,2}, {3,4})
+  print('SubMatrix(A, {1,2}, {3,4}) =', exp)
+  exp = Tuple(exp)
+  local r = exp:tex()
   print(exp, '=', r)
-  exp = Tuple(r)
-  r = exp:tex()
-  print(exp, '=', r)
-  print(Transpose(A), Transpose(A))
+  print(Transpose(A))
   A = Matrix({1,2},{3,4})
   print(BlockMatrix({A,A},{A,A}))
   assert(r=='(3,4,4,5)')
 end
 
-test[10] = function()
+test[13] = function()
   print('Expand (x-1)(1+...+x^n)')
   local x = Symbols('x')
   local s = List()
@@ -160,7 +157,6 @@ test[10] = function()
 end
 
 
-]]
 for i=1,#test do
   print('Test ',i)
   local time = os.clock()
