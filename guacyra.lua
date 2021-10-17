@@ -1176,7 +1176,7 @@ function(a)
     num[#num+1] = e[i][1]
     den[#den+1] = e[i][2]
   end
-  return List(num, den)
+  return List(eval(num), eval(den))
 end)
 Rule(NumeratorDenominator(Plus(__{a=_})),
 function(a)
@@ -1196,7 +1196,7 @@ function(a)
     local r = (den:copy())*e[i][1]/e[i][2]
     num[#num+1] = r
   end
-  return List(num, den)
+  return List(eval(num), eval(den))
 end)
 Rule(NumeratorDenominator(_{a=_}),
 function(a)
@@ -1725,6 +1725,68 @@ Rule(TeX(Derivative(_{f=_})(1)(_{x=_})),
 function(f, x)
   return Cat(TeX(f), "{'}(", TeX(x),')')
 end, Derivative)
+
+local Complex, Conjugate, Abs =
+  Symbols('Complex Congugate Abs', guacyra)
+
+local I = Complex(0, 1)
+guacyra.I = I
+Rule(Complex(_{a=_}, 0), 
+function(a)
+  return a
+end)
+Rule(Conjugate(Complex(_{a=_}, _{b=_})), 
+function(a, b)
+  return Complex(a, -b)
+end)
+Rule(Abs(Complex(_{a=_}, _{b=_})), 
+function(a, b)
+  return Sqrt(a^2+b^2)
+end)
+Rule(Plus(Complex(_{a=_}, _{b=_}),
+          Complex(_{c=_}, _{d=_})),
+function(a, b, c, d)
+  return Complex(a+c, b+d) 
+end, Complex)
+Rule(Plus(_{a=NumericQ},
+          Complex(_{c=_}, _{d=_})),
+function(a, c, d)
+  return Complex(a+c, d) 
+end, Complex)
+Rule(Times(Complex(_{a=_}, _{b=_}),
+           Complex(_{c=_}, _{d=_})),
+function(a, b, c, d)
+  return Complex(a*c-b*d, a*d+b*c) 
+end, Complex)
+Rule(Times(_{a=NumericQ},
+          Complex(_{c=_}, _{d=_})),
+function(a, c, d)
+  return Complex(a*c, a*d) 
+end, Complex)
+Rule(Power(_{z=Complex}, _{n=Int}),
+function(z, n)
+  local r = Int(1)
+  for i=1,math.abs(n[1]) do
+    r = r*z
+  end
+  if n[1]<0 then
+    return Conjugate(r)/Power(Abs(r), 2)
+  end
+  return r
+end, Complex)
+Rule(TeX(Complex(_{a=_},_{b=_})),
+function(a, b)
+  local i = Symbols('\\mathrm{i}')
+  local b = TeX(b*i)
+  if a:eq(0) then
+    return b
+  end
+  if b[1]:sub(1,1)=='-' then
+    return Cat(TeX(a),b)
+  else
+    return Cat(TeX(a),'+',b)
+  end 
+end, Complex)
 
 local Matrix, Dot, Det, RREF, Rank = 
   Symbols('Matrix Dot Det RREF Rank', guacyra)

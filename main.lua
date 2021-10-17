@@ -156,6 +156,14 @@ test[13] = function()
   assert(sum:eq(r))
 end
 
+test[14] = function()
+  local x, f = Symbols('x f')
+  print('Diff(Cos(f(x)^2), x) =',TeX(Diff(Cos(f(x)^2), x)))
+end
+
+test[14] = function()
+  print(TeX(3+4*I))
+end
 
 for i=1,#test do
   print('Test ',i)
