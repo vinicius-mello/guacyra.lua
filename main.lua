@@ -163,6 +163,9 @@ end
 
 test[14] = function()
   print(TeX(3+4*I))
+  local A = Matrix({1,2,1+2*I},{-2,3,-2+3*I},{-1,4,-1+4*I})
+  local r = RREF(A)
+  print('RREF(A)=', r)
 end
 
 for i=1,#test do

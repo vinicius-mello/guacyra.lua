@@ -440,8 +440,8 @@ local function has(ex, subex)
   end
 end
 
-local Sequence, Plus, Times, Power =
-  Symbols('Sequence Plus Times Power', guacyra)
+local Numeric, Sequence, Plus, Times, Power =
+  Symbols('Numeric Sequence Plus Times Power', guacyra)
 
 local function isNumeric(e)
   return e[0] == Int or e[0] == Rat
@@ -757,6 +757,10 @@ Rule(Equal(_{a=_}, _{b=_}),
 function(a, b) return Bool(equal(a, b)) end)
 Rule(Less(_{a=_}, _{b=_}),
 function(a, b) return Bool(less(a, b)) end)
+Rule(Numeric(_{a=_}),
+function(a)
+  return Bool(isNumeric(a))
+end)
 
 local Map, Apply, First, Rest, Fold, Reduce, GroupWith = 
   Symbols('Map Apply First Rest Fold Reduce GroupWith', guacyra)
@@ -1727,10 +1731,14 @@ function(f, x)
 end, Derivative)
 
 local Complex, Conjugate, Abs =
-  Symbols('Complex Congugate Abs', guacyra)
+  Symbols('Complex Conjugate Abs', guacyra)
 
 local I = Complex(0, 1)
 guacyra.I = I
+Rule(Numeric(Complex(_{a=_},_{b=_})),
+function(a, b)
+  return Bool(isNumeric(a) and isNumeric(b))
+end, Complex)
 Rule(Complex(_{a=_}, 0), 
 function(a)
   return a
@@ -1951,7 +1959,7 @@ local function rref(A)
       i = i+1
     end
     if i <= m then
-      if not isNumeric(A[i][j]) then
+      if not Numeric(A[i][j]):test() then
         return
       end
       if i ~= ii then
