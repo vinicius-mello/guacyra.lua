@@ -168,6 +168,23 @@ test[14] = function()
   print('RREF(A)=', r)
 end
 
+test[15] = function()
+  local A = Matrix(
+    {Zp(1,13), Zp(6,13), Zp(8,13)},
+    {Zp(5,13), Zp(10,13), Zp(12,13)},
+    {Zp(8,13), Zp(1,13), Zp(3,13)})
+  local Id = Matrix(3,3, function(i,j)
+    if i:eq(j) then
+      return Zp(1,13)
+    else
+      return Int(0)
+    end
+  end)
+  print('A =', A)
+  print('Det(A)=', Det(A))
+  print(SubMatrix(RREF(BlockMatrix({A, Id})),{1,3},{4,6}))
+end
+
 for i=1,#test do
   print('Test ',i)
   local time = os.clock()

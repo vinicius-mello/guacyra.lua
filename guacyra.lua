@@ -1730,6 +1730,58 @@ function(f, x)
   return Cat(TeX(f), "{'}(", TeX(x),')')
 end, Derivative)
 
+local Zp = Symbols('Zp', guacyra)
+Rule(Numeric(Zp(_{a=Int}, _{p=Int})),
+function(a, p)
+  return True
+end, Zp)
+Rule(Zp(0,_{p=Int}),
+function(p) return Int(0) end)
+Rule(Zp(_{a=Int}, _{p=Int}),
+function(a, p)
+  if a[1]>=0 and a[1]<p[1] then
+    return nil
+  else
+    return cat(Zp, a[1] % p[1], p)
+  end
+end)
+Rule(Plus(_{a=Int}, Zp(_{b=Int}, _{p=Int})),
+function(a, b, p)
+  return Zp((a[1]+b[1])%p[1], p)
+end, Zp)
+Rule(Plus(Zp(_{a=Int},_{p=Int}), Zp(_{b=Int},_{p=Int})),
+function(a, b, p)
+  return Zp((a[1]+b[1])%p[1], p)
+end, Zp)
+Rule(Times(_{a=Int}, Zp(_{b=Int},_{p=Int})),
+function(a, b, p)
+  return Zp((a[1]*b[1])%p[1], p)
+end, Zp)
+Rule(Times(Zp(_{a=Int},_{p=Int}), Zp(_{b=Int},_{p=Int})),
+function(a, b, p)
+  return Zp((a[1]*b[1])%p[1], p)
+end, Zp)
+Rule(Power(_{z=Zp}, _{n=Int}),
+function(z, n)
+  local p = z[2][1]
+  local r = Int(1)
+  for i=1,math.abs(n[1]) do
+    r = r*z
+  end
+  if n[1]<0 then
+    for i=1,p-1 do
+      if (i*r):eq(Zp(1, p)) then
+        return Zp(i, p)
+      end
+    end
+  end
+  return r
+end, Zp)
+Rule(TeX(Zp(_{a=Int}, _{p=Int})),
+function(a)
+  return TeX(a)
+end, Zp)
+
 local Complex, Conjugate, Abs =
   Symbols('Complex Conjugate Abs', guacyra)
 
