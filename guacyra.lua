@@ -1,11 +1,28 @@
 
 -- Number Theory
 local floor, infinite, random = math.floor, math.huge, math.random
-local abs = math.abs
+local abs, max, min = math.abs, math.max, math.min
 
 local function gcd(a, b)
   while b ~= 0 do a, b = b, a % b end
   return abs(a)
+end
+
+local function invmodp(a, p)
+  local t, newt = 0, 1
+  local r, newr = p, a
+  while newr ~= 0 do
+    local quotient = floor(r/newr)
+    t, newt = newt, t-quotient*newt
+    r, newr = newr, r-quotient*newr
+  end
+  if r > 1 then
+      error "a is not invertible"
+  end
+  if t < 0 then
+      t = t+p
+  end
+  return t
 end
 
 local function isInt(a) return type(a) == 'number' and a == floor(a) end
@@ -19,6 +36,14 @@ local function binomial(n, k)
     denom = denom * i
   end
   return floor(numer / denom) -- lua 5.3
+end
+
+local function factorial(n)
+  local r = 1
+  for i=1,n do
+    r = r*i
+  end
+  return r
 end
 
 --- Calculate the modular power for any exponent.
@@ -762,6 +787,39 @@ function(a)
   return Bool(isNumeric(a))
 end)
 
+local GCD, Binomial, Factorial, Mod, Max, Min =
+  Symbols('GCD Binomial Factorial Mod Max Min', guacyra)
+Rule(GCD(_{a=Int},_{b=Int}),
+function(a, b)
+  return Int(gcd(a[1], b[1]))
+end)
+Rule(Binomial(_{a=Int},_{b=Int}),
+function(a, b)
+  return Int(binomial(a[1], b[1]))
+end)
+Rule(Factorial(_{n=Int}),
+function(n)
+  return Int(factorial(n[1]))
+end)
+Rule(Mod(_{a=Int},_{b=Int}),
+function(a, b)
+  return Int(a[1] % b[1])
+end)
+Rule(Max(_{a=NumericQ},_{b=NumericQ}),
+function(a, b)
+  if numericValue(a)>numericValue(b) then
+    return a
+  end
+  return b
+end)
+Rule(Min(_{a=NumericQ},_{b=NumericQ}),
+function(a, b)
+  if numericValue(a)<numericValue(b) then
+    return a
+  end
+  return b
+end)
+
 local Map, Apply, First, Rest, Fold, Reduce, GroupWith = 
   Symbols('Map Apply First Rest Fold Reduce GroupWith', guacyra)
 
@@ -1044,7 +1102,7 @@ function(a, p)
     else
       local fact = factorization(a[1])
       p[1] = -p[1]
-      local k = math.floor(p[1] / p[2])
+      local k = floor(p[1] / p[2])
       local r = p[1] - k * p[2]
       local u, v = root(fact, p[2] - r, p[2])
       return Times(Rat(u, a[1] ^ (k + 1)), Power(v, Rat(1, p[2])))
@@ -1573,29 +1631,27 @@ function(c)
   return Str(s)
 end)
 
-Rule(TeX(Set(__{a=_})),
-function(a)
-  local s='\\{'
+local function fmtseq(a, del)
+  local s=''
+  del = del or ','
   for i=1,#a do
     if i~=1 then
-      s = s..','
+      s = s..del
     end
     s = s..(TeX(a[i])[1])
   end
-  s = s..'\\}'
+  return s
+end
+
+Rule(TeX(Set(__{a=_})),
+function(a)
+  local s='\\{'..fmtseq(a)..'\\}'
   return Str(s)
 end)
 
 Rule(TeX(List(__{a=_})),
 function(a)
-  local s='['
-  for i=1,#a do
-    if i~=1 then
-      s = s..','
-    end
-    s = s..TeX(a[i])[1]
-  end
-  s = s..']'
+  local s='['..fmtseq(a)..']'
   return Str(s)
 end)
 
@@ -1763,18 +1819,11 @@ end, Zp)
 Rule(Power(_{z=Zp}, _{n=Int}),
 function(z, n)
   local p = z[2][1]
-  local r = Int(1)
-  for i=1,math.abs(n[1]) do
-    r = r*z
-  end
+  local r = fmodpow(z[1][1], abs(n[1]), p)
   if n[1]<0 then
-    for i=1,p-1 do
-      if (i*r):eq(Zp(1, p)) then
-        return Zp(i, p)
-      end
-    end
+    r = invmodp(r, p)
   end
-  return r
+  return Zp(r, p)
 end, Zp)
 Rule(TeX(Zp(_{a=Int}, _{p=Int})),
 function(a)
@@ -1797,6 +1846,14 @@ end)
 Rule(Conjugate(Complex(_{a=_}, _{b=_})), 
 function(a, b)
   return Complex(a, -b)
+end)
+Rule(Abs(_{a=Int}), 
+function(a)
+  return Int(abs(a[1]))
+end)
+Rule(Abs(_{a=Rat}), 
+function(a)
+  return Rat(abs(a[1]), a[2])
 end)
 Rule(Abs(Complex(_{a=_}, _{b=_})), 
 function(a, b)
@@ -1825,7 +1882,7 @@ end, Complex)
 Rule(Power(_{z=Complex}, _{n=Int}),
 function(z, n)
   local r = Int(1)
-  for i=1,math.abs(n[1]) do
+  for i=1,abs(n[1]) do
     r = r*z
   end
   if n[1]<0 then
@@ -1897,12 +1954,8 @@ function(rs)
   local t = ''
   local n = #rs[1]
   for i=1,#rs do
-    local r = rs[i]
-    for j=1,#r do
-      if j>1 then t = t..' & ' end 
-      t = t..(TeX(r[j])[1])
-    end
-    t = t..' \\\\'
+    local r = fmtseq(rs[i], ' & ')
+    t = t..r..' \\\\'
   end
   local fmt = '{'..string.rep('r', n)..'}'
   return Cat('\\left[\\begin{array}', fmt,
@@ -2095,6 +2148,51 @@ function(A)
   local B = copy(A)
   return Int(rref(B))
 end)
+local MatrixZero, MatrixId, MatrixDiag, Diagonal, Tr = 
+  Symbols('MatrixZero MatrixId MatrixDiag Diagonal Tr', guacyra)
+
+Rule(MatrixZero(_{m=Int},_{n=Int}),
+function(m, n)
+  return Matrix(m, n, function(i,j) return Int(0) end)
+end)  
+Rule(MatrixId(_{n=Int}),
+function(n)
+  return Matrix(n, n,
+    function(i,j)
+      if i:eq(j) then 
+        return Int(1)
+      else
+        return Int(0)
+      end
+    end)
+end)  
+Rule(MatrixDiag(List(__{d=_})),
+function(d)
+  return Matrix(#d, #d,
+    function(i,j)
+      if i:eq(j) then 
+        return d[i[1]]
+      else
+        return Int(0)
+      end
+    end)
+end)  
+Rule(Diagonal(_{A=Matrix}),
+function(A)
+  local l = List()
+  local m, n = dims(A)
+  n = min(m, n)
+  for i=1,n do l[#l+1] = A[i][i] end
+  return l
+end)  
+Rule(Tr(_{A=Matrix}),
+function(A)
+  local r = Int(0)
+  local m, n = dims(A)
+  n = min(m, n)
+  for i=1,n do r = r+A[i][i] end
+  return r
+end)  
 
 local SubMatrix, Tuple, Transpose, BlockMatrix = 
   Symbols('SubMatrix Tuple Transpose BlockMatrix', guacyra)
@@ -2142,14 +2240,7 @@ end)
 
 Rule(TeX(Tuple(__{a=_})),
 function(a)
-  local s='('
-  for i=1,#a do
-    if i~=1 then
-      s = s..','
-    end
-    s = s..(TeX(a[i])[1])
-  end
-  s = s..')'
+  local s='('..fmtseq(a)..')'
   return Str(s)
 end
 ,Tuple)
