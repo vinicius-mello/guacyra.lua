@@ -1946,8 +1946,8 @@ function(a, b)
   end 
 end, Complex)
 
-local Matrix, Dot, Det, RREF, Rank = 
-  Symbols('Matrix Dot Det RREF Rank', guacyra)
+local Matrix, Dot, Det, RREF, Rank, Inverse = 
+  Symbols('Matrix Dot Det RREF Rank Inverse', guacyra)
 guacyra.__concat = Dot
 
 Rule(Matrix(_{m=Int}, _{n=Int}, _{f=Fun}),
@@ -2190,6 +2190,7 @@ function(A)
   local B = copy(A)
   return Int(rref(B))
 end)
+
 local MatrixZero, MatrixId, MatrixDiag, Diagonal, Tr = 
   Symbols('MatrixZero MatrixId MatrixDiag Diagonal Tr', guacyra)
 
@@ -2239,6 +2240,14 @@ end)
 local SubMatrix, Tuple, Transpose, BlockMatrix = 
   Symbols('SubMatrix Tuple Transpose BlockMatrix', guacyra)
 
+Rule(Inverse(_{A=Matrix}),
+function(A)
+  local m, n = dims(A)
+  local AI = BlockMatrix({A, MatrixId(n)})
+  AI = RREF(AI)
+  return SubMatrix(AI,{1,n},{n+1,2*n})
+end)
+  
 Rule(SubMatrix(_{a=Matrix},
   List(_{i1=Int},_{i2=Int}),
   List(_{j1=Int},_{j2=Int})),
