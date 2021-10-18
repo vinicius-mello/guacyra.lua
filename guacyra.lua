@@ -864,13 +864,12 @@ function(a, b, n)
   return t
 end)
 
-guacyra.__add = function(a, b) return Plus(a, b) end
+guacyra.__add = Plus
 guacyra.__sub = function(a, b) return Plus(a, Times(-1, b)) end
 guacyra.__unm = function(a) return Times(-1, a) end
-guacyra.__mul = function(a, b) return Times(a, b) end
+guacyra.__mul = Times
 guacyra.__div = function(a, b) return Times(a, Power(b, -1)) end
-guacyra.__pow = function(a, b) return Power(a, b) end
-
+guacyra.__pow = Power
 local NumericQ = Fun(
 function(ex)
   return Bool(isNumeric(ex))
