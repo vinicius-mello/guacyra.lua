@@ -189,6 +189,10 @@ test[16] = function()
   local A = Matrix({1,-1},{2,1})  
   local B = Matrix({-3,2},{0,2})
   print(A..B)
+  print(Choose(Range(1,60),6))
+  print(Choose(Range(1,60),6))
+  print(Choose(Range(1,60),6))
+  print(Choose(Range(1,60),6))
 end
 
 for i=1,#test do
