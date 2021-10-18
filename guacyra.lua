@@ -819,6 +819,11 @@ function(a, b)
   end
   return b
 end)
+local Factor = Symbols('Factor', guacyra)
+Rule(Factor(_{a=Int}),
+function(a)
+  return Apply(List, factorization(a[1]))
+end)
 
 local Map, Apply, First, Rest, Fold, Reduce, GroupWith = 
   Symbols('Map Apply First Rest Fold Reduce GroupWith', guacyra)
@@ -885,8 +890,8 @@ function(a, b)
   return r
 end)
 
-local Cat, Range, RandInt = 
-  Symbols('Cat Range RandInt', guacyra)
+local Cat, Range, RandInt, Shuffle, Choose = 
+  Symbols('Cat Range RandInt Shuffle Choose', guacyra)
 
 Rule(Cat(___{c=_}),
 function(c)
@@ -920,6 +925,43 @@ function(a, b, n)
     t[#t+1] = Int(random(a[1], b[1]))
   end
   return t
+end)
+
+Rule(Shuffle(_{a=List}),
+function(a)
+  a = copy(a)
+  for i = #a,2,-1 do
+    local j = random(1, i)
+     a[i], a[j] = a[j], a[i]
+  end
+  return a
+end)
+Rule(Choose(_{n=Int}, _{m=Int}),
+function(n, m)
+  -- https://stackoverflow.com/questions/2394246/algorithm-to-select-a-single-random-combination-of-values
+  local s = List()
+  for j= n[1]-m[1]+1,n[1] do
+    local t = RandInt({1, j})
+    local f = true
+    for i=1,#s do
+      if s[i]:eq(t) then 
+        s[#s+1] = Int(j)
+        f = false
+        break
+      end
+    end 
+    if f then 
+      s[#s+1] = t
+    end
+  end
+  table.sort(s, less)
+  return s
+end)
+Rule(Choose(_{l=List}, _{m=Int}),
+function(l, m)
+  local n = #l
+  local r = Choose(n, m)
+  return Map(function(i) return l[i[1]] end, r)
 end)
 
 guacyra.__add = Plus
