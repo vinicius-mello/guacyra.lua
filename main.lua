@@ -185,6 +185,12 @@ test[15] = function()
   print(SubMatrix(RREF(BlockMatrix({A, Id})),{1,3},{4,6}))
 end
 
+test[16] = function()
+  local A = Matrix({1,-1},{2,1})  
+  local B = Matrix({-3,2},{0,2})
+  print(A..B)
+end
+
 for i=1,#test do
   print('Test ',i)
   local time = os.clock()

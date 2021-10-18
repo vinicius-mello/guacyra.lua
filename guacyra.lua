@@ -1850,6 +1850,7 @@ end, Complex)
 
 local Matrix, Dot, Det, RREF, Rank = 
   Symbols('Matrix Dot Det RREF Rank', guacyra)
+guacyra.__concat = Dot
 
 Rule(Matrix(_{m=Int}, _{n=Int}, _{f=Fun}),
 function(m, n, f)
@@ -1866,6 +1867,32 @@ end)
 local function dims(m) 
   return #m, #m[1]
 end
+Rule(Times(_{a=_}, _{A=Matrix}),
+function(a, A)
+  local B = Matrix()
+  local m, n = dims(A)
+  for i=1,m do
+    local l = List()
+    for j=1,n do
+      l[#l+1] = a*A[i][j]
+    end
+    B[#B+1] = l
+  end
+  return B
+end, Matrix)
+Rule(Plus(_{A=Matrix}, _{B=Matrix}),
+function(A, B)
+  local C = Matrix()
+  local m, n = dims(A)
+  for i=1,m do
+    local l = List()
+    for j=1,n do
+      l[#l+1] = A[i][j]+B[i][j]
+    end
+    C[#C+1] = l
+  end
+  return C
+end, Matrix)
 Rule(TeX(Matrix(__{rs=_})),
 function(rs)
   local t = ''
@@ -1919,7 +1946,12 @@ function dot(A, B)
   return rs 
 end
 
+Dot.flat = true
 Rule(Dot(_{A=Matrix}, _{B=Matrix}), dot)
+Rule(Dot(__{As=Matrix}),
+function(As)
+  return Reduce(Dot, List(As))
+end)
 
 local function diagonal(A) 
   local r = cat(List)
