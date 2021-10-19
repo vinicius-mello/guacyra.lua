@@ -170,12 +170,12 @@ end
 
 test[15] = function()
   local A = Matrix(
-    {Zp(1,13), Zp(6,13), Zp(8,13)},
-    {Zp(5,13), Zp(10,13), Zp(12,13)},
-    {Zp(8,13), Zp(1,13), Zp(3,13)})
+    {Zm(1,13), Zm(6,13), Zm(8,13)},
+    {Zm(5,13), Zm(10,13), Zm(12,13)},
+    {Zm(8,13), Zm(1,13), Zm(3,13)})
   local Id = Matrix(3,3, function(i,j)
     if i:eq(j) then
-      return Zp(1,13)
+      return Zm(1,13)
     else
       return Int(0)
     end
