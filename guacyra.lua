@@ -805,14 +805,14 @@ Rule(Mod(_{a=Int},_{b=Int}),
 function(a, b)
   return Int(a[1] % b[1])
 end)
-Rule(Max(_{a=NumericQ},_{b=NumericQ}),
+Rule(Max(_{a=RatQ},_{b=RatQ}),
 function(a, b)
   if numericValue(a)>numericValue(b) then
     return a
   end
   return b
 end)
-Rule(Min(_{a=NumericQ},_{b=NumericQ}),
+Rule(Min(_{a=RatQ},_{b=RatQ}),
 function(a, b)
   if numericValue(a)<numericValue(b) then
     return a
@@ -970,11 +970,11 @@ guacyra.__unm = function(a) return Times(-1, a) end
 guacyra.__mul = Times
 guacyra.__div = function(a, b) return Times(a, Power(b, -1)) end
 guacyra.__pow = Power
-local NumericQ = Fun(
+local RatQ = Fun(
 function(ex)
   return Bool(isNumeric(ex))
 end)
-guacyra.NumericQ = NumericQ
+guacyra.RatQ = RatQ
 
 Plus.flat = true
 Plus.orderless = true
@@ -1083,15 +1083,15 @@ Rule(Plus(Times(__{a=_}),Times(__{a=_})),
 function(a)
   return Times(2, a)
 end, Times)
-Rule(Plus(Times(__{a=_}), Times(_{c=NumericQ},__{a=_})),
+Rule(Plus(Times(__{a=_}), Times(_{c=RatQ},__{a=_})),
 function(c, a)
   return Times(Plus(c, 1), a)
 end, Times)
-Rule(Plus(Times(_{c=NumericQ},__{a=_}),Times(_{d=NumericQ},__{a=_})),
+Rule(Plus(Times(_{c=RatQ},__{a=_}),Times(_{d=RatQ},__{a=_})),
 function(c, a, d)
   return Times(Plus(c, d), a)
 end, Times)
-Rule(Plus(_{a=_},Times(_{c=NumericQ}, _{a=_})),
+Rule(Plus(_{a=_},Times(_{c=RatQ}, _{a=_})),
 function(a, c)
   return Times(Plus(c, 1), a)
 end, Times)
@@ -1183,8 +1183,8 @@ function(a, e, f)
   return Power(a, Plus(e, f))
 end, Power)
 
-Rule(Times(Power(_{a=Int}, _{e=NumericQ}),
-           Power(_{b=Int}, _{e=NumericQ})),
+Rule(Times(Power(_{a=Int}, _{e=RatQ}),
+           Power(_{b=Int}, _{e=RatQ})),
 function(a, e, b)
   return Power(Times(a, b), e)
 end, Power)
@@ -1402,7 +1402,7 @@ end
 
 Mono.order = deglex
 
-Rule(Power(Mono(_{c=NumericQ}, _{e=List}), _{p=Int}),
+Rule(Power(Mono(_{c=RatQ}, _{e=List}), _{p=Int}),
 function(c, e, p) 
   e = copy(e)
   for i=1,#e do e[i] = e[i]*p end
@@ -1424,7 +1424,7 @@ function(m)
   return Mono(c, l)
 end, Mono)
 
-Rule(Times(_{c=NumericQ}, __{m=Mono}),
+Rule(Times(_{c=RatQ}, __{m=Mono}),
 function(c, m)
   local l = cat(List)
   for i=1,#m do
@@ -1440,7 +1440,7 @@ end, Mono)
 
 Poly.orderless = true
 Poly.flat = true
-Rule(Poly(_{c=NumericQ}, ___{m=Mono}),
+Rule(Poly(_{c=RatQ}, ___{m=Mono}),
 function(c, m)
   local n
   if #m>0 then
@@ -1796,7 +1796,7 @@ Rule(Diff(Plus(__{a=_}), _{x=Symbol}),
 function(a, x) 
   return Map(function(t) return Diff(t,x) end, Plus(a))
 end)
-Rule(Diff(Power(_{f=_}, _{n=NumericQ}), _{x=Symbol}),
+Rule(Diff(Power(_{f=_}, _{n=RatQ}), _{x=Symbol}),
 function(f, n, x)
   return Times(n, Power(f, n-1), Diff(f, x))
 end)
@@ -1827,50 +1827,50 @@ function(f, x)
   return Cat(TeX(f), "{'}(", TeX(x),')')
 end, Derivative)
 
-local Zp = Symbols('Zp', guacyra)
-Rule(Numeric(Zp(_{a=Int}, _{p=Int})),
+local Zm = Symbols('Zm', guacyra)
+Rule(Numeric(Zm(_{a=Int}, _{p=Int})),
 function(a, p)
   return True
-end, Zp)
-Rule(Zp(0,_{p=Int}),
+end, Zm)
+Rule(Zm(0,_{p=Int}),
 function(p) return Int(0) end)
-Rule(Zp(_{a=Int}, _{p=Int}),
+Rule(Zm(_{a=Int}, _{p=Int}),
 function(a, p)
   if a[1]>=0 and a[1]<p[1] then
     return nil
   else
-    return cat(Zp, a[1] % p[1], p)
+    return cat(Zm, a[1] % p[1], p)
   end
 end)
-Rule(Plus(_{a=Int}, Zp(_{b=Int}, _{p=Int})),
+Rule(Plus(_{a=Int}, Zm(_{b=Int}, _{p=Int})),
 function(a, b, p)
-  return Zp((a[1]+b[1])%p[1], p)
-end, Zp)
-Rule(Plus(Zp(_{a=Int},_{p=Int}), Zp(_{b=Int},_{p=Int})),
+  return Zm((a[1]+b[1])%p[1], p)
+end, Zm)
+Rule(Plus(Zm(_{a=Int},_{p=Int}), Zm(_{b=Int},_{p=Int})),
 function(a, b, p)
-  return Zp((a[1]+b[1])%p[1], p)
-end, Zp)
-Rule(Times(_{a=Int}, Zp(_{b=Int},_{p=Int})),
+  return Zm((a[1]+b[1])%p[1], p)
+end, Zm)
+Rule(Times(_{a=Int}, Zm(_{b=Int},_{p=Int})),
 function(a, b, p)
-  return Zp((a[1]*b[1])%p[1], p)
-end, Zp)
-Rule(Times(Zp(_{a=Int},_{p=Int}), Zp(_{b=Int},_{p=Int})),
+  return Zm((a[1]*b[1])%p[1], p)
+end, Zm)
+Rule(Times(Zm(_{a=Int},_{p=Int}), Zm(_{b=Int},_{p=Int})),
 function(a, b, p)
-  return Zp((a[1]*b[1])%p[1], p)
-end, Zp)
-Rule(Power(_{z=Zp}, _{n=Int}),
+  return Zm((a[1]*b[1])%p[1], p)
+end, Zm)
+Rule(Power(_{z=Zm}, _{n=Int}),
 function(z, n)
   local p = z[2][1]
   local r = fmodpow(z[1][1], abs(n[1]), p)
   if n[1]<0 then
     r = invmodp(r, p)
   end
-  return Zp(r, p)
-end, Zp)
-Rule(TeX(Zp(_{a=Int}, _{p=Int})),
+  return Zm(r, p)
+end, Zm)
+Rule(TeX(Zm(_{a=Int}, _{p=Int})),
 function(a)
   return TeX(a)
-end, Zp)
+end, Zm)
 
 local Complex, Conjugate, Abs =
   Symbols('Complex Conjugate Abs', guacyra)
@@ -1906,7 +1906,7 @@ Rule(Plus(Complex(_{a=_}, _{b=_}),
 function(a, b, c, d)
   return Complex(a+c, b+d) 
 end, Complex)
-Rule(Plus(_{a=NumericQ},
+Rule(Plus(_{a=RatQ},
           Complex(_{c=_}, _{d=_})),
 function(a, c, d)
   return Complex(a+c, d) 
@@ -1916,7 +1916,7 @@ Rule(Times(Complex(_{a=_}, _{b=_}),
 function(a, b, c, d)
   return Complex(a*c-b*d, a*d+b*c) 
 end, Complex)
-Rule(Times(_{a=NumericQ},
+Rule(Times(_{a=RatQ},
           Complex(_{c=_}, _{d=_})),
 function(a, c, d)
   return Complex(a*c, a*d) 
@@ -1966,6 +1966,19 @@ local function dims(m)
   return #m, #m[1]
 end
 Rule(Times(_{a=_}, _{A=Matrix}),
+function(a, A)
+  local B = Matrix()
+  local m, n = dims(A)
+  for i=1,m do
+    local l = List()
+    for j=1,n do
+      l[#l+1] = a*A[i][j]
+    end
+    B[#B+1] = l
+  end
+  return B
+end, Matrix)
+Rule(Times(_{A=Matrix},_{a=_}),
 function(a, A)
   local B = Matrix()
   local m, n = dims(A)
@@ -2208,7 +2221,16 @@ function(n)
         return Int(0)
       end
     end)
-end)  
+end)
+Rule(Power(_{A=Matrix}, _{e=Int}),
+function(A, e)
+  local m, n = dims(A)
+  local C = MatrixId(n)
+  for i=1,e[1] do
+    C = Dot(C, A)
+  end
+  return C
+end, Matrix)
 Rule(MatrixDiag(List(__{d=_})),
 function(d)
   return Matrix(#d, #d,
