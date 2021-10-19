@@ -480,6 +480,12 @@ local function numericValue(e)
   end
 end
 
+local RatQ = Fun(
+function(ex)
+  return Bool(isNumeric(ex))
+end)
+guacyra.RatQ = RatQ
+
 local Mono, Poly = Symbols('Mono Poly', guacyra)
 
 -- Joel S. Cohen, Computer Algebra and Symbolic Computation: Mathematical Methods
@@ -776,6 +782,31 @@ local function Rule(pat, fu, sym)
 end
 guacyra.Rule = Rule
 
+local function replR(ex, pat, fu, args)
+  local cap = {}
+  if ex:match(pat, cap) then
+    local cargs = {}
+    for i=1,#args do cargs[#cargs+1] = cap[args[i]] end
+    return fu(unpack(cargs))
+  else
+    if isAtom(ex) then
+      return ex
+    else
+      local r = {}
+      for i = 0, #ex do r[i] = replR(ex[i], pat, fu, args) end
+      setmetatable(r, guacyra)
+      return r
+    end
+  end
+end
+
+local function repl(ex, pat, fu)
+  local args = getArgs(fu)
+  return replR(ex, pat, fu, args):eval(true)
+end
+guacyra.repl = repl
+
+
 local Equal, Less = 
   Symbols('Equal Less', guacyra)
 Rule(Equal(_{a=_}, _{b=_}),
@@ -786,6 +817,11 @@ Rule(Numeric(_{a=_}),
 function(a)
   return Bool(isNumeric(a))
 end)
+local NumericQ = Fun(
+function(ex)
+  return Numeric(ex)
+end)
+guacyra.NumericQ = NumericQ
 
 local GCD, Binomial, Factorial, Mod, Max, Min =
   Symbols('GCD Binomial Factorial Mod Max Min', guacyra)
@@ -970,11 +1006,6 @@ guacyra.__unm = function(a) return Times(-1, a) end
 guacyra.__mul = Times
 guacyra.__div = function(a, b) return Times(a, Power(b, -1)) end
 guacyra.__pow = Power
-local RatQ = Fun(
-function(ex)
-  return Bool(isNumeric(ex))
-end)
-guacyra.RatQ = RatQ
 
 Plus.flat = true
 Plus.orderless = true
@@ -1083,15 +1114,15 @@ Rule(Plus(Times(__{a=_}),Times(__{a=_})),
 function(a)
   return Times(2, a)
 end, Times)
-Rule(Plus(Times(__{a=_}), Times(_{c=RatQ},__{a=_})),
+Rule(Plus(Times(__{a=_}), Times(_{c=NumericQ},__{a=_})),
 function(c, a)
   return Times(Plus(c, 1), a)
 end, Times)
-Rule(Plus(Times(_{c=RatQ},__{a=_}),Times(_{d=RatQ},__{a=_})),
+Rule(Plus(Times(_{c=NumericQ},__{a=_}),Times(_{d=NumericQ},__{a=_})),
 function(c, a, d)
   return Times(Plus(c, d), a)
 end, Times)
-Rule(Plus(_{a=_},Times(_{c=RatQ}, _{a=_})),
+Rule(Plus(_{a=_},Times(_{c=NumericQ}, _{a=_})),
 function(a, c)
   return Times(Plus(c, 1), a)
 end, Times)
@@ -1402,60 +1433,56 @@ end
 
 Mono.order = deglex
 
-Rule(Power(Mono(_{c=RatQ}, _{e=List}), _{p=Int}),
+Rule(Power(Mono(_{c=NumericQ}, _{e=List}), _{p=Int}),
 function(c, e, p) 
   e = copy(e)
   for i=1,#e do e[i] = e[i]*p end
   return Mono(c^p, e)
 end, Mono)
 
-Rule(Times(__{m=Mono}),
-function(m)
-  local l = cat(List)
-  local c = Int(1)
-  for i=1,#m do
-    c = c*m[i][1]
-    local n = m[i][2]
-    for j=1,#n do
-      if not l[j] then l[j] = Int(0) end 
-      l[j] = l[j]+n[j] 
-    end
+Rule(Times(_{n=Mono}, _{m=Mono}),
+function(n, m)
+  local l = List()
+  for i=1,#n[2] do
+    l[#l+1] = n[2][i]+m[2][i]
   end
-  return Mono(c, l)
+  Mono(n[1]*m[1], l)
 end, Mono)
-
-Rule(Times(_{c=RatQ}, __{m=Mono}),
+Rule(Times(_{c=NumericQ}, _{m=Mono}),
 function(c, m)
-  local l = cat(List)
-  for i=1,#m do
-    c = c*m[i][1]
-    local n = m[i][2]
-    for j=1,#n do
-      if not l[j] then l[j] = Int(0) end 
-      l[j] = l[j]+n[j] 
-    end
-  end
-  return Mono(c, l)
+  return Mono(c*m[1], m[2])
+end, Mono)
+Rule(Times(_{m=Mono},_{c=NumericQ}),
+function(c, m)
+  return Mono(c*m[1], m[2])
 end, Mono)
 
 Poly.orderless = true
 Poly.flat = true
-Rule(Poly(_{c=RatQ}, ___{m=Mono}),
-function(c, m)
-  local n
-  if #m>0 then
-    n = #m[1][2]
+Rule(Poly(___{m=_}),
+function(m)
+  local r = Poly()
+  local c = Int(0)
+  local n = 0
+  for i=1,#m do
+    if m[i][0]==Mono then
+      r[#r+1] = m[i]
+      n = max(n, #m[i][2])
+    elseif Numeric(m[i]):test() then
+      c = c+m[i]
+    else 
+      error 'Not a monomial.'
+    end 
   end
   local l = cat(List)
   for i=1,n do l[#l+1] = Int(0) end
-  return Poly(Mono(c, l), m)
+  return Poly(Mono(c, l), r)
 end)
-
 local function isPolynomial(p, var)
   if isSymbol(p) then
     var[p[1]] = p
     return true
-  elseif isNumeric(p) then
+  elseif Numeric(p):test() then
     return true 
   elseif p[0]==Plus or p[0]==Times then
     for i=1,#p do
@@ -1477,7 +1504,7 @@ local function isMonomial(p, var)
   if isSymbol(p) then
     var[p[1]] = p
     return true
-  elseif isNumeric(p) then
+  elseif Numeric(p):test() then
     return true 
   elseif p[0]==Power then
     if isSymbol(p[1]) 
@@ -1868,8 +1895,8 @@ function(z, n)
   return Zm(r, p)
 end, Zm)
 Rule(TeX(Zm(_{a=Int}, _{p=Int})),
-function(a)
-  return TeX(a)
+function(a, p)
+  return Cat('[',TeX(a),']_{',p,'}')
 end, Zm)
 
 local Complex, Conjugate, Abs =
@@ -1906,8 +1933,13 @@ Rule(Plus(Complex(_{a=_}, _{b=_}),
 function(a, b, c, d)
   return Complex(a+c, b+d) 
 end, Complex)
-Rule(Plus(_{a=RatQ},
+Rule(Plus(_{a=NumericQ},
           Complex(_{c=_}, _{d=_})),
+function(a, c, d)
+  return Complex(a+c, d) 
+end, Complex)
+Rule(Plus(Complex(_{c=_}, _{d=_}),
+          _{a=NumericQ}),
 function(a, c, d)
   return Complex(a+c, d) 
 end, Complex)
@@ -1916,8 +1948,13 @@ Rule(Times(Complex(_{a=_}, _{b=_}),
 function(a, b, c, d)
   return Complex(a*c-b*d, a*d+b*c) 
 end, Complex)
-Rule(Times(_{a=RatQ},
+Rule(Times(_{a=NumericQ},
           Complex(_{c=_}, _{d=_})),
+function(a, c, d)
+  return Complex(a*c, a*d) 
+end, Complex)
+Rule(Times(Complex(_{c=_}, _{d=_}),
+           _{a=NumericQ}),
 function(a, c, d)
   return Complex(a*c, a*d) 
 end, Complex)
