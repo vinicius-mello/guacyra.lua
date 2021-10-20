@@ -993,6 +993,9 @@ end)
 Rule(Choose(_{l=List}, _{m=Int}),
 function(l, m)
   local n = #l
+  if m:eq(1) then
+    return l[RandInt({1,n})[1]]
+  end
   local r = Choose(n, m)
   return Map(function(i) return l[i[1]] end, r)
 end)
