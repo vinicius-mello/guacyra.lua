@@ -2031,6 +2031,11 @@ local Matrix, Dot, Det, RREF, Rank, Inverse =
   Symbols('Matrix Dot Det RREF Rank Inverse', guacyra)
 guacyra.__concat = Dot
 
+Rule(Matrix({_{a=_}}),
+function(a)
+  return a
+end)
+
 Rule(Matrix(_{m=Int}, _{n=Int}, _{f=Fun}),
 function(m, n, f)
   local rs = cat(Matrix)
@@ -2048,7 +2053,7 @@ local function dims(m)
 end
 Rule(Times(_{a=_}, _{A=Matrix}),
 function(a, A)
-  local B = Matrix()
+  local B = List()
   local m, n = dims(A)
   for i=1,m do
     local l = List()
@@ -2057,11 +2062,11 @@ function(a, A)
     end
     B[#B+1] = l
   end
-  return B
+  return Apply(Matrix, B)
 end, Matrix)
 Rule(Times(_{A=Matrix},_{a=_}),
 function(a, A)
-  local B = Matrix()
+  local B = List()
   local m, n = dims(A)
   for i=1,m do
     local l = List()
@@ -2070,11 +2075,11 @@ function(a, A)
     end
     B[#B+1] = l
   end
-  return B
+  return Apply(Matrix, A)
 end, Matrix)
 Rule(Plus(_{A=Matrix}, _{B=Matrix}),
 function(A, B)
-  local C = Matrix()
+  local C = List()
   local m, n = dims(A)
   for i=1,m do
     local l = List()
@@ -2083,7 +2088,7 @@ function(A, B)
     end
     C[#C+1] = l
   end
-  return C
+  return Apply(Matrix, C)
 end, Matrix)
 Rule(TeX(Matrix(__{rs=_})),
 function(rs)
@@ -2119,7 +2124,7 @@ function dot(A, B)
   if n~=n2 then
     error('Wrong dimensions.')
   end
-  local rs = cat(Matrix)
+  local rs = cat(List)
   for i=1,m do 
     local r = cat(List)
     for j=1,p do
@@ -2131,7 +2136,7 @@ function dot(A, B)
     end
     rs[#rs+1] = r
   end
-  return rs 
+  return Apply(Matrix, rs) 
 end
 
 Dot.flat = true
