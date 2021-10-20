@@ -468,7 +468,7 @@ end
 local Numeric, Sequence, Plus, Times, Power =
   Symbols('Numeric Sequence Plus Times Power', guacyra)
 
-local function isNumeric(e)
+local function isRational(e)
   return e[0] == Int or e[0] == Rat
 end
 
@@ -482,7 +482,7 @@ end
 
 local RatQ = Fun(
 function(ex)
-  return Bool(isNumeric(ex))
+  return Bool(isRational(ex))
 end)
 guacyra.RatQ = RatQ
 
@@ -491,7 +491,7 @@ local Mono, Poly = Symbols('Mono Poly', guacyra)
 -- Joel S. Cohen, Computer Algebra and Symbolic Computation: Mathematical Methods
 local function less(u, v)
   -- O1
-  if isNumeric(u) and isNumeric(v) then
+  if isRational(u) and isRational(v) then
     return numericValue(u) < numericValue(v)
   end
   if u[0] == Str and v[0] == Str then
@@ -543,9 +543,9 @@ local function less(u, v)
     return m < n
   end
   -- O7
-  if isNumeric(u) and not isNumeric(v) then
+  if isRational(u) and not isRational(v) then
     return true
-  elseif not isNumeric(u) and isNumeric(v) then
+  elseif not isRational(u) and isRational(v) then
     return false
   end
   -- O8
@@ -819,7 +819,7 @@ Rule(Less(_{a=_}, _{b=_}),
 function(a, b) return Bool(less(a, b)) end)
 Rule(Numeric(_{a=_}),
 function(a)
-  return Bool(isNumeric(a))
+  return Bool(isRational(a))
 end)
 local NumericQ = Fun(
 function(ex)
@@ -865,8 +865,8 @@ function(a)
   return Apply(List, factorization(a[1]))
 end)
 
-local Map, Apply, First, Rest, Fold, Reduce, GroupWith = 
-  Symbols('Map Apply First Rest Fold Reduce GroupWith', guacyra)
+local Map, Apply, First, Rest, Reduce, GroupWith = 
+  Symbols('Map Apply First Rest Reduce GroupWith', guacyra)
 
 Rule(Map(_{a=_}, _{b=_}),
 function(a, b)
@@ -888,13 +888,6 @@ end)
 Rule(Rest(_{a=_}(_{b=_}, ___{c=_})),
 function(a, b, c)
   return a(c)
-end)
-Rule(Fold(_{a=_}, _{b=_}, _{c=_}),
-function(a, b, c)
-  local t = b
-  for i = 1, #c do
-    t = a(t, c[i]) end
-  return t
 end)
 Rule(Reduce(_{a=_}, _{b=List}),
 function(a, b)
@@ -1950,7 +1943,7 @@ local I = Complex(0, 1)
 guacyra.I = I
 Rule(Numeric(Complex(_{a=_},_{b=_})),
 function(a, b)
-  return Bool(isNumeric(a) and isNumeric(b))
+  return Bool(isRational(a) and isRational(b))
 end, Complex)
 Rule(Complex(_{a=_}, 0), 
 function(a)
