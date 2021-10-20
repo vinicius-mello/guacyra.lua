@@ -1577,7 +1577,7 @@ guacyra.tex = function(e)
 end
 Rule(TeXP(Plus(__{c=_})),
 function(c)
-  return Cat('(', TeX(Plus(c)), ')')
+  return Cat('\\left(', TeX(Plus(c)), '\\right)')
 end)
 Rule(TeXP(_{a=_}),
 function(a) return TeX(a) end)
@@ -1741,13 +1741,13 @@ end
 
 Rule(TeX(Set(__{a=_})),
 function(a)
-  local s='\\{'..fmtseq(a)..'\\}'
+  local s='\\left\\{'..fmtseq(a)..'\\right\\}'
   return Str(s)
 end)
 
 Rule(TeX(List(__{a=_})),
 function(a)
-  local s='['..fmtseq(a)..']'
+  local s='\\left['..fmtseq(a)..'\\right]'
   return Str(s)
 end)
 
@@ -1756,9 +1756,14 @@ function(s)
   return Str(s[1])
 end)
 
+Rule(TeX(_{s=Str}),
+function(s)
+  return s
+end)
+
 Rule(TeX(_{f=_}(___{a=_})),
 function(f, a)
-  return Cat(TeX(f),'('..fmtseq(a)..')')
+  return Cat(TeX(f),'\\left('..fmtseq(a)..'\\right)')
 end)
 
 Rule(TeX(_{a=_}),
@@ -1888,7 +1893,7 @@ function(a)
 end, Cos)
 Rule(TeX(Derivative(_{f=_})(1)(_{x=_})),
 function(f, x)
-  return Cat(TeX(f), "{'}(", TeX(x),')')
+  return Cat(TeX(f), "{'}\\left(", TeX(x),'\\right)')
 end, Derivative)
 
 local Zm = Symbols('Zm', guacyra)
@@ -2392,7 +2397,7 @@ end)
 
 Rule(TeX(Tuple(__{a=_})),
 function(a)
-  local s='('..fmtseq(a)..')'
+  local s='\\left('..fmtseq(a)..'\\right)'
   return Str(s)
 end
 ,Tuple)
