@@ -21,8 +21,6 @@ test[1] = function()
   assert(First(Apply(f, l)):eq(1))
   print('Rest(Map(f, Range(1, 3))) =', Rest(Map(f, l)))
   assert(Rest(Map(f, l)):eq({f(2), f(3)}))
-  print('Fold(f, 0, Range(1, 3)) =', Fold(f, 0, l))
-  assert(Fold(f, 0, l):eq(f(f(f(0,1),2),3)))
   print('Reduce(f, Range(1, 3)) =', Reduce(f, l))
   assert(Reduce(f, l):eq(f(f(1,2),3)))
   print('Reduce(f, Range(1, 3), 0) =', Reduce(f, l, 0))
@@ -194,6 +192,25 @@ test[16] = function()
   print(Choose(Range(1,60),6))
   print(Choose(Range(1,60),6))
   print(Choose(Range(1,60),6))
+end
+
+test[17] = function()
+  local a = List(Rat(5,7),Rat(4,7),Rat(2,7),Rat(2,7))
+  local s = Apply(Plus, Map(function(t) return t*t end), a)
+  local A = Matrix(4,4,
+    function(i, j)
+      if i:eq(1) then
+        return a[j[1]]
+      elseif j:eq(1) then
+        return a[i[1]]
+      elseif i:eq(j) then
+        return (a[i[1]]^2-a[1]-1)/(1+a[1])
+      else
+        return a[i[1]]*a[j[1]]/(1+a[1])
+      end
+    end)
+  print(A)
+  print(A..Transpose(A))
 end
 
 for i=1,#test do

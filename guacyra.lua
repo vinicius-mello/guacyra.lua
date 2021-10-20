@@ -1458,7 +1458,7 @@ Poly.orderless = true
 Poly.flat = true
 Rule(Poly(__{m=Mono}),
 function(m)
-  local r = Poly()
+  local r = cat(Poly)
   local f = true
   local c = m[1][1]
   local last = m[1][2]
