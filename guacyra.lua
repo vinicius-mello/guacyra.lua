@@ -782,8 +782,11 @@ local function Rule(pat, fu, sym)
 end
 guacyra.Rule = Rule
 
-local function replR(ex, pat, fu, args)
+local function replR(ex, pat, fu, lvl, args)
   local cap = {}
+  if lvl==0 then
+    return ex 
+  end 
   if ex:match(pat, cap) then
     local cargs = {}
     for i=1,#args do cargs[#cargs+1] = cap[args[i]] end
@@ -793,16 +796,17 @@ local function replR(ex, pat, fu, args)
       return ex
     else
       local r = {}
-      for i = 0, #ex do r[i] = replR(ex[i], pat, fu, args) end
+      for i = 0, #ex do r[i] = replR(ex[i], pat, fu, lvl-1,args) end
       setmetatable(r, guacyra)
       return r
     end
   end
 end
 
-local function repl(ex, pat, fu)
+local function repl(ex, pat, fu, lvl)
+  lvl = lvl or math.huge
   local args = getArgs(fu)
-  return replR(ex, pat, fu, args):eval(true)
+  return replR(ex, pat, fu, lvl, args):eval(true)
 end
 guacyra.repl = repl
 
@@ -1446,7 +1450,7 @@ function(n, m)
   for i=1,#n[2] do
     l[#l+1] = n[2][i]+m[2][i]
   end
-  Mono(n[1]*m[1], l)
+  return Mono(n[1]*m[1], l)
 end, Mono)
 Rule(Times(_{c=NumericQ}, _{m=Mono}),
 function(c, m)
@@ -1459,25 +1463,37 @@ end, Mono)
 
 Poly.orderless = true
 Poly.flat = true
-Rule(Poly(___{m=_}),
+Rule(Poly(__{m=Mono}),
 function(m)
   local r = Poly()
-  local c = Int(0)
-  local n = 0
-  for i=1,#m do
-    if m[i][0]==Mono then
-      r[#r+1] = m[i]
-      n = max(n, #m[i][2])
-    elseif Numeric(m[i]):test() then
-      c = c+m[i]
+  local f = true
+  local c = m[1][1]
+  local last = m[1][2]
+  for i=2,#m do
+    if equal(m[i][2], last) then
+      f = false
+      c = c+m[i][1]
     else 
-      error 'Not a monomial.'
-    end 
+      if not equal(c, Int(0)) then
+        r[#r+1] = Mono(c, last)
+      else
+        f = false
+      end
+      c = m[i][1]
+      last = m[i][2]
+    end
   end
-  local l = cat(List)
-  for i=1,n do l[#l+1] = Int(0) end
-  return Poly(Mono(c, l), r)
+  if not equal(c, Int(0)) then
+    r[#r+1] = Mono(c, last)
+  else
+    f = false
+  end
+  if f then
+    return nil
+  end
+  return r
 end)
+
 local function isPolynomial(p, var)
   if isSymbol(p) then
     var[p[1]] = p
@@ -1543,6 +1559,7 @@ local function expToPoly(p, var)
     s[#s+1] = k
   end
   table.sort(s)
+  s = conv(s)
   local subs = {}
   local n = #s
   local l = cat(List)
@@ -1550,11 +1567,13 @@ local function expToPoly(p, var)
   for i=1,n do 
     local ll = copy(l)
     ll[i] = Int(1)
-    subs[s[i]] = cat(Mono, 1, ll)
+    subs[s[i][1]] = cat(Mono, 1, ll)
   end
   subs['Plus'] = Poly
   local r = p:subst(subs)
-  return r:eval(true), s
+  r = r:repl(_{a=NumericQ}, function(a) return Mono(a, l) end, 2)
+  r = r:eval(true)
+  return r, s
 end
 
 local TeXP = Symbol("TeXP")
@@ -1587,6 +1606,10 @@ function(p)
   else
     return Str('\\frac{'..(a)..'}{'..b..'}')
   end
+end)
+Rule(TeX(_{a=Int}),
+function(a)
+  return Str(''..(a[1]))
 end)
 Rule(TeX(Times(-1,__{a=_})),
 function(a) 
@@ -1636,50 +1659,57 @@ Rule(TeX(Power(_{a=_}, _{b=_})),
 function(a, b)
     return Cat(TeXP(a), '^{', TeX(b),'}')
 end)
-
-local function formatPoly(p, vars)
-  if p[0]==Mono then
-    local s
-    if equal(p[1], Int(1)) then
-      if deg(p)==0 then return '1' end
-      s = ''
-    elseif equal(p[1], Int(-1)) then
-      if deg(p)==0 then return '-1' end
-      s = '-'
-    else 
-      s = TeX(p[1])[1]
-    end
-    local l = p[2]
-    for i=1,#l do
-      local ll = l[i]
-      if ll[1]==1 then
-        s = s..vars[i] 
-      elseif ll[1]>1 then
-        local ls = tostring(ll)
-        if #ls==1 then
-          s = s..vars[i]..'^'..ls        
-        else
-          s = s..vars[i]..'^{'..ls..'}'
-        end
-      end
-    end
-    return s
-  elseif p[0]==Poly then
-    local s
-    for i=1,#p do
-      if i==1 then
-        s = formatPoly(p[i], vars)
-      else
-        local ss = formatPoly(p[i], vars)
-        if ss:sub(1,1)~='-' then
-          s = s..'+'
-        end
-        s = s..ss
-      end
-    end
-    return s
+local defaultVars =
+  List('x_1','x_2','x_3','x_4','x_5',
+       'x_6','x_7','x_8','x_9','x_{10}')
+Rule(TeX(Mono(_{c=NumericQ}, _{l=List})),
+function(c, l)
+  local s
+  local vars = Poly.vars or defaultVars
+  local p = Mono(c, l) 
+  if equal(p[1], Int(1)) then
+    if deg(p)==0 then return Str('1') end
+    s = ''
+  elseif equal(p[1], Int(-1)) then
+    if deg(p)==0 then return Str('-1') end
+    s = '-'
+  else 
+    s = TeX(p[1])[1]
   end
-end
+  local l = p[2]
+  for i=1,#l do
+    local ll = l[i]
+    if ll[1]==1 then
+      s = s..vars[i][1]
+    elseif ll[1]>1 then
+      local ls = ''..ll[1]
+      if #ls==1 then
+        s = s..vars[i][1]..'^'..ls        
+      else
+        s = s..vars[i][1]..'^{'..ls..'}'
+      end
+    end
+  end
+  return Str(s)
+end, Mono)
+
+Rule(TeX(Poly()),
+function()
+  return Str('0')
+end)
+
+Rule(TeX(Poly(__{p=Mono})),
+function(p)
+  local s = ''
+  for i=1,#p do
+    local t = TeX(p[i])
+    if t[1]:sub(1,1)~='-' and i~=1 then
+      s = s..'+'
+    end
+    s = s..t[1]
+  end
+  return Str(s)
+end, Poly)
 
 Rule(TeX(Plus(__{c=_})),
 function(c)
@@ -1687,7 +1717,11 @@ function(c)
   local pp = Plus(c)
   if isExpandedPolynomial(pp, vars) then
     local p, s = expToPoly(pp, vars)
-    return Str(formatPoly(p, s))
+    local v = Poly.vars
+    Poly.vars = s
+    local r = TeX(p)
+    Poly.vars = v
+    return r
   end
   local s = ''
   for i=1,#c do
@@ -1722,6 +1756,16 @@ Rule(TeX(List(__{a=_})),
 function(a)
   local s='['..fmtseq(a)..']'
   return Str(s)
+end)
+
+Rule(TeX(_{s=Symbol}),
+function(s)
+  return Str(s[1])
+end)
+
+Rule(TeX(_{f=_}(___{a=_})),
+function(f, a)
+  return Cat(TeX(f),'('..fmtseq(a)..')')
 end)
 
 Rule(TeX(_{a=_}),

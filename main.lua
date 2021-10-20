@@ -7,6 +7,7 @@ guacyra.import()
 math.randomseed(1)
 local test = {}
 
+
 test[1] = function()
   local f, g, h = Symbols('f g h')
   local l = Range(1, 3)
