@@ -135,7 +135,7 @@ test[12] = function()
   print(Transpose(A))
   A = Matrix({1,2},{3,4})
   print(BlockMatrix({A,A},{A,A}))
-  assert(r=='(3,4,4,5)')
+  assert(r=='\\left(3,4,4,5\\right)')
 end
 
 test[13] = function()
