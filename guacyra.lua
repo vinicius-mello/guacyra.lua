@@ -2346,18 +2346,18 @@ function(A)
   return r
 end)  
 
-local SubMatrix, Tuple, Transpose, BlockMatrix = 
-  Symbols('SubMatrix Tuple Transpose BlockMatrix', guacyra)
+local Sub, Tuple, Trans, BlockMatrix = 
+  Symbols('Sub Tuple Trans BlockMatrix', guacyra)
 
 Rule(Inverse(_{A=Matrix}),
 function(A)
   local m, n = dims(A)
   local AI = BlockMatrix({A, MatrixId(n)})
   AI = RREF(AI)
-  return SubMatrix(AI,{1,n},{n+1,2*n})
+  return Sub(AI,{1,n},{n+1,2*n})
 end)
   
-Rule(SubMatrix(_{a=Matrix},
+Rule(Sub(_{a=Matrix},
   List(_{i1=Int},_{i2=Int}),
   List(_{j1=Int},_{j2=Int})),
 function (a, i1, i2, j1, j2)
@@ -2372,18 +2372,18 @@ function (a, i1, i2, j1, j2)
   return r
 end)
 
-Rule(SubMatrix(_{a=Matrix},
+Rule(Sub(_{a=Matrix},
   List(_{i1=Int},_{i2=Int}),
   _{j1=Int}),
 function (a, i1, i2, j1)
-  return SubMatrix(a,{i1,i2},{j1,j1})
+  return Sub(a,{i1,i2},{j1,j1})
 end)
 
-Rule(SubMatrix(_{a=Matrix},
+Rule(Sub(_{a=Matrix},
   _{i1=Int},
   List(_{j1=Int},_{j2=Int})),
 function (a, i1, j1, j2)
-  return SubMatrix(a,{i1,i1},{j1,j2})
+  return Sub(a,{i1,i1},{j1,j2})
 end)
 
 Rule(Tuple(_{a=Matrix}),
@@ -2405,7 +2405,7 @@ function(a)
 end
 ,Tuple)
 
-Rule(Transpose(_{a=Matrix}),
+Rule(Trans(_{a=Matrix}),
 function (a)
   local m, n = dims(a)
   local r = Matrix()

@@ -127,12 +127,12 @@ end
 test[12] = function()
   local a, b, c = Symbols('a b c')
   local A = Matrix({1,2,3,4},{2,3,4,5},{3,4,5,6})
-  local exp = SubMatrix(A, {1,2}, {3,4})
-  print('SubMatrix(A, {1,2}, {3,4}) =', exp)
+  local exp = Sub(A, {1,2}, {3,4})
+  print('Sub(A, {1,2}, {3,4}) =', exp)
   exp = Tuple(exp)
   local r = exp:tex()
   print(exp, '=', r)
-  print(Transpose(A))
+  print(Trans(A))
   A = Matrix({1,2},{3,4})
   print(BlockMatrix({A,A},{A,A}))
   assert(r=='\\left(3,4,4,5\\right)')
@@ -181,7 +181,7 @@ test[15] = function()
   end)
   print('A =', A)
   print('Det(A)=', Det(A))
-  print(SubMatrix(RREF(BlockMatrix({A, Id})),{1,3},{4,6}))
+  print(Sub(RREF(BlockMatrix({A, Id})),{1,3},{4,6}))
 end
 
 test[16] = function()
@@ -210,7 +210,7 @@ test[17] = function()
       end
     end)
   print(A)
-  print(A..Transpose(A))
+  print(A..Trans(A))
 end
 
 for i=1,#test do
