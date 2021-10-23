@@ -1274,18 +1274,18 @@ function(a)
   return a
 end)
 
-local Numerator, Denominator, NumeratorDenominator, Together = 
-  Symbols('Numerator Denominator NumeratorDenominator Together', guacyra)
+local Num, Den, NumDen, Together = 
+  Symbols('Num Den NumDen Together', guacyra)
 
-Rule(NumeratorDenominator(_{p=Rat}),
+Rule(NumDen(_{p=Rat}),
 function(p)
   return List(p[1], p[2])
 end)
-Rule(NumeratorDenominator(_{a=Int}),
+Rule(NumDen(_{a=Int}),
 function(a)
   return List(a[1], 1)
 end)
-Rule(NumeratorDenominator(Power(_{a=_}, _{b=Int})),
+Rule(NumDen(Power(_{a=_}, _{b=Int})),
 function(a, b)
   if b[1]<0 then
     return List(1, Power(a, -b[1]))
@@ -1293,7 +1293,7 @@ function(a, b)
     return List(Power(a, b), 1)
   end
 end)
-Rule(NumeratorDenominator(Power(_{a=_}, _{q=Rat})),
+Rule(NumDen(Power(_{a=_}, _{q=Rat})),
 function(a, q)
   if q[1]<0 then
     return List(1, Power(a, Rat(-q[1],q[2])))
@@ -1301,9 +1301,9 @@ function(a, q)
     return List(Power(a, q), 1)
   end
 end)
-Rule(NumeratorDenominator(Times(__{a=_})),
+Rule(NumDen(Times(__{a=_})),
 function(a)
-  local e = Map(NumeratorDenominator, List(a))
+  local e = Map(NumDen, List(a))
   local num = cat(Times)
   local den = cat(Times)
   for i=1,#e do
@@ -1312,9 +1312,9 @@ function(a)
   end
   return List(eval(num), eval(den))
 end)
-Rule(NumeratorDenominator(Plus(__{a=_})),
+Rule(NumDen(Plus(__{a=_})),
 function(a)
-  local e = Map(NumeratorDenominator, List(a))
+  local e = Map(NumDen, List(a))
   local num = cat(Plus)
   local den = cat(Times)
   local t = {}
@@ -1332,23 +1332,23 @@ function(a)
   end
   return List(eval(num), eval(den))
 end)
-Rule(NumeratorDenominator(_{a=_}),
+Rule(NumDen(_{a=_}),
 function(a)
   return List(a, 1)
 end)
-Rule(Numerator(_{a=_}),
+Rule(Num(_{a=_}),
 function(a)
-  local nd = NumeratorDenominator(a)
+  local nd = NumDen(a)
   return nd[1]
 end)
-Rule(Denominator(_{a=_}),
+Rule(Den(_{a=_}),
 function(a)
-  local nd = NumeratorDenominator(a)
+  local nd = NumDen(a)
   return nd[2]
 end)
 Rule(Together(_{a=_}),
 function(a)
-  local l = NumeratorDenominator(a)
+  local l = NumDen(a)
   if l[2][0]==Int then
     return l[1]/l[2]
   else
@@ -1613,7 +1613,7 @@ function(a)
 end)
 Rule(TeX(Times(__{a=_})),
 function(a)
-  local l = NumeratorDenominator(Times(a))
+  local l = NumDen(Times(a))
   if l[2][0]==Int then
     return Apply(Cat,Map(TeXP,List(a)))
   else
@@ -1944,8 +1944,8 @@ function(a, p)
   return Cat('[',TeX(a),']_{',p,'}')
 end, Zm)
 
-local Complex, Conjugate, Abs =
-  Symbols('Complex Conjugate Abs', guacyra)
+local Complex, Conj, Abs =
+  Symbols('Complex Conj Abs', guacyra)
 
 local I = Complex(0, 1)
 guacyra.I = I
@@ -1957,7 +1957,7 @@ Rule(Complex(_{a=_}, 0),
 function(a)
   return a
 end)
-Rule(Conjugate(Complex(_{a=_}, _{b=_})), 
+Rule(Conj(Complex(_{a=_}, _{b=_})), 
 function(a, b)
   return Complex(a, -b)
 end)
@@ -2010,7 +2010,7 @@ function(z, n)
     r = r*z
   end
   if n[1]<0 then
-    return Conjugate(r)/Power(Abs(r), 2)
+    return Conj(r)/Power(Abs(r), 2)
   end
   return r
 end, Complex)
@@ -2028,8 +2028,8 @@ function(a, b)
   end 
 end, Complex)
 
-local Matrix, Dot, Det, RREF, Rank, Inverse = 
-  Symbols('Matrix Dot Det RREF Rank Inverse', guacyra)
+local Matrix, Dot, Det, RREF, Rank, Inv = 
+  Symbols('Matrix Dot Det RREF Rank Inv', guacyra)
 guacyra.__concat = Dot
 
 Rule(Matrix({_{a=_}}),
@@ -2291,8 +2291,8 @@ function(A)
   return Int(rref(B))
 end)
 
-local MatrixZero, MatrixId, MatrixDiag, Diagonal, Tr = 
-  Symbols('MatrixZero MatrixId MatrixDiag Diagonal Tr', guacyra)
+local MatrixZero, MatrixId, MatrixDiag, Diag, Tr = 
+  Symbols('MatrixZero MatrixId MatrixDiag Diag Tr', guacyra)
 
 Rule(MatrixZero(_{m=Int},_{n=Int}),
 function(m, n)
@@ -2329,7 +2329,7 @@ function(d)
       end
     end)
 end)  
-Rule(Diagonal(_{A=Matrix}),
+Rule(Diag(_{A=Matrix}),
 function(A)
   local l = List()
   local m, n = dims(A)
@@ -2349,7 +2349,7 @@ end)
 local Sub, Tuple, Trans, BlockMatrix = 
   Symbols('Sub Tuple Trans BlockMatrix', guacyra)
 
-Rule(Inverse(_{A=Matrix}),
+Rule(Inv(_{A=Matrix}),
 function(A)
   local m, n = dims(A)
   local AI = BlockMatrix({A, MatrixId(n)})

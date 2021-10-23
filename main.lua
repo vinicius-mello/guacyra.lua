@@ -102,8 +102,8 @@ test[9] = function()
   local a, b, c = Symbols('a b c')
   local A = Matrix({1,2,12,a},{-2,3,11,b},{-1,4,18,c})
   local r = RREF(A)
-  r = Numerator(r[3][4])
-  print('Numerator(RREF(A)[3][4])=', r)
+  r = Num(r[3][4])
+  print('Num(RREF(A)[3][4])=', r)
   assert(r:eq(Plus(Times(-5,a),Times(-6,b),Times(7,c))))
 end
 
