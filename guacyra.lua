@@ -736,6 +736,16 @@ eval = function(e, rec)
 end
 
 guacyra.eval = eval
+guacyra.val = function(ex)
+  if isAtom(ex) then
+    if isRational(ex) then
+      return numericValue(ex)
+    else
+      return ex[1]
+    end
+  end
+  return ex
+end
 
 local max_args = 10
 local function getArgs(fun)
