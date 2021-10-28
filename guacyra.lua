@@ -1604,6 +1604,21 @@ function(p, a)
     return Str('\\frac{'..s..'}{'..p[2]..'}')
   end
 end)
+Rule(TeX(Times(_{a=Rat}, Power(_{b=Int}, _{c=Rat}))),
+function(a, b, c)
+  if c[1] == 1 and c[2] == 2 then
+    local r = TeX(Power(b, c))[1]
+    if a[1] <0 then
+      if a[1]~= -1 then r = (-a[1])..r end
+      r = '-\\frac{'..r..'}{'..a[2]..'}'
+    else
+      if a[1] ~= 1 then r = a[1]..r end
+      r = '\\frac{'..r..'}{'..a[2]..'}'
+    end
+    return Str(r)
+  end
+  return nil
+end)
 Rule(TeX(_{p=Rat}),
 function(p)
   local a, b = p[1], p[2]
