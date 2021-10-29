@@ -572,6 +572,11 @@ local function less(u, v)
   elseif isSymbol(u) and equal(u, v[0]) then
     return true
   end
+  if isSymbol(v) then
+    return false
+  elseif isSymbol(u) then
+    return true
+  end
   -- Catch all
   return tostring(u) < tostring(v)
 end
