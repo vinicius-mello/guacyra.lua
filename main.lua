@@ -134,7 +134,7 @@ test[12] = function()
   print(exp, '=', r)
   print(Trans(A))
   A = Matrix({1,2},{3,4})
-  print(BlockMatrix({A,A},{A,A}))
+  print(Block({A,A},{A,A}))
   assert(r=='\\left(3,4,4,5\\right)')
 end
 
@@ -181,7 +181,7 @@ test[15] = function()
   end)
   print('A =', A)
   print('Det(A)=', Det(A))
-  print(Sub(RREF(BlockMatrix({A, Id})),{1,3},{4,6}))
+  print(Sub(RREF(Block({A, Id})),{1,3},{4,6}))
 end
 
 test[16] = function()
@@ -220,6 +220,11 @@ for i=1,#test do
   print('\t time elapsed: ',os.clock()-time)
 end
 
+A = Matrix [[
+  -1 -2/3
+  3 4
+]]
+print(A)
 
 --profiler.stop()
 --profiler.report("profiler.log")

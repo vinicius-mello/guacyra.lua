@@ -2068,7 +2068,6 @@ Rule(Matrix({_{a=_}}),
 function(a)
   return a
 end)
-
 Rule(Matrix(_{m=Int}, _{n=Int}, _{f=Fun}),
 function(m, n, f)
   local rs = cat(Matrix)
@@ -2084,44 +2083,53 @@ end)
 local function dims(m) 
   return #m, #m[1]
 end
+local loadstring = load or loadstring
+Rule(Matrix(_{s=Str}),
+function(s)
+  s=s[1]:gsub(';%s*', '\r\n')
+  local lines = {}
+  for ss in s:gmatch("[^\r\n]+") do
+    table.insert(lines, ss)
+  end
+  local m = Matrix()
+  print(#lines)
+  for i=1,#lines do
+    print(lines[i])
+    local c = List()
+    for ss in lines[i]:gmatch('%S+') do
+      local p = ss:find('/')
+      local v
+      if p then
+        v = Rat(tonumber(ss:sub(1,p-1)),tonumber(ss:sub(p+1,-1)))
+      else
+        v = Int(tonumber(ss))
+      end
+      c[#c+1] = v 
+    end
+    m[#m+1] = c
+  end
+  return m
+end)
 Rule(Times(_{a=_}, _{A=Matrix}),
 function(a, A)
-  local B = List()
   local m, n = dims(A)
-  for i=1,m do
-    local l = List()
-    for j=1,n do
-      l[#l+1] = a*A[i][j]
-    end
-    B[#B+1] = l
-  end
-  return Apply(Matrix, B)
+  return Matrix(m, n, function(i,j)
+    return a*A[i[1]][j[1]]
+  end)
 end, Matrix)
 Rule(Times(_{A=Matrix},_{a=_}),
 function(a, A)
-  local B = List()
   local m, n = dims(A)
-  for i=1,m do
-    local l = List()
-    for j=1,n do
-      l[#l+1] = a*A[i][j]
-    end
-    B[#B+1] = l
-  end
-  return Apply(Matrix, A)
+  return Matrix(m, n, function(i,j)
+    return a*A[i[1]][j[1]]
+  end)
 end, Matrix)
 Rule(Plus(_{A=Matrix}, _{B=Matrix}),
 function(A, B)
-  local C = List()
   local m, n = dims(A)
-  for i=1,m do
-    local l = List()
-    for j=1,n do
-      l[#l+1] = A[i][j]+B[i][j]
-    end
-    C[#C+1] = l
-  end
-  return Apply(Matrix, C)
+  return Matrix(m, n, function(i,j)
+    return A[i[1]][j[1]]+B[i[1]][j[1]]
+  end)
 end, Matrix)
 Rule(TeX(Matrix(__{rs=_})),
 function(rs)
@@ -2136,21 +2144,13 @@ function(rs)
     Str(t),
     '\\end{array}\\right]')
 end, Matrix)
-
 Rule(RandInt({_{a=Int}, _{b=Int}},
   _{m=Int}, _{n=Int}),
 function(a, b, m, n)
-  local r = cat(Matrix)
-  for i=1,m[1] do
-    local l = cat(List)
-    for j=1,n[1] do
-      l[#l+1] = Int(random(a[1], b[1]))
-    end
-    r[#r+1] = l
-  end
-  return r
+  return Matrix(m, n, function(i,j)
+    return Int(random(a[1], b[1]))
+  end)
 end)
-
 function dot(A, B)
   local m, n = dims(A)
   local n2, p = dims(B)
@@ -2323,19 +2323,15 @@ function(A)
   return Int(rref(B))
 end)
 
-local MatrixZero, MatrixId, MatrixDiag, Diag, Tr = 
-  Symbols('MatrixZero MatrixId MatrixDiag Diag Tr', guacyra)
+local Diag, Tr = 
+  Symbols('Diag Tr', guacyra)
 
-Rule(MatrixZero(_{m=Int},_{n=Int}),
-function(m, n)
-  return Matrix(m, n, function(i,j) return Int(0) end)
-end)  
-Rule(MatrixId(_{n=Int}),
-function(n)
-  return Matrix(n, n,
+Rule(Matrix(_{m=Int},_{n=Int}, _{k=_}),
+function(m, n, k)
+  return Matrix(m, n,
     function(i,j)
       if i:eq(j) then 
-        return Int(1)
+        return k
       else
         return Int(0)
       end
@@ -2344,13 +2340,13 @@ end)
 Rule(Power(_{A=Matrix}, _{e=Int}),
 function(A, e)
   local m, n = dims(A)
-  local C = MatrixId(n)
+  local C = Matrix(n, n, 1)
   for i=1,e[1] do
     C = Dot(C, A)
   end
   return C
 end, Matrix)
-Rule(MatrixDiag(List(__{d=_})),
+Rule(Diag(List(__{d=_})),
 function(d)
   return Matrix(#d, #d,
     function(i,j)
@@ -2378,13 +2374,13 @@ function(A)
   return r
 end)  
 
-local Sub, Tuple, Trans, BlockMatrix = 
-  Symbols('Sub Tuple Trans BlockMatrix', guacyra)
+local Sub, Tuple, Trans, Block = 
+  Symbols('Sub Tuple Trans Block', guacyra)
 
 Rule(Inv(_{A=Matrix}),
 function(A)
   local m, n = dims(A)
-  local AI = BlockMatrix({A, MatrixId(n)})
+  local AI = Block({A, Matrix(n, n, 1)})
   AI = RREF(AI)
   return Sub(AI,{1,n},{n+1,2*n})
 end)
@@ -2451,7 +2447,7 @@ function (a)
   return r
 end)
 
-Rule(BlockMatrix(__{a=List}),
+Rule(Block(__{a=List}),
 function (a)
   local mb, nb = dims(a)
   local r = Matrix()
