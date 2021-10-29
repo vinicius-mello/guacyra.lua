@@ -878,18 +878,17 @@ end)
 local Map, Apply, First, Rest, Reduce, GroupWith = 
   Symbols('Map Apply First Rest Reduce GroupWith', guacyra)
 
+Rule(Apply(_{a=_}, _{b=_}(___{c=_})),
+function(a, b, c)
+  return a(c)
+end)
 Rule(Map(_{a=_}, _{b=_}),
 function(a, b)
   local l = cat(List)
   for i=1,#b do
     l[#l+1] = a(b[i])
   end
-  l[0] = b[0]
-  return  l
-end)
-Rule(Apply(_{a=_}, _{b=_}(___{c=_})),
-function(a, b, c)
-  return a(c)
+  return  Apply(b[0], l)
 end)
 Rule(First(_{a=_}(_{b=_}, ___{c=_})),
 function(a, b, c)
@@ -899,7 +898,7 @@ Rule(Rest(_{a=_}(_{b=_}, ___{c=_})),
 function(a, b, c)
   return a(c)
 end)
-Rule(Reduce(_{a=_}, _{b=List}),
+Rule(Reduce(_{a=_}, _{b=_}),
 function(a, b)
   local r = b[1]
   for i = 2, #b do
@@ -907,7 +906,7 @@ function(a, b)
   end
   return r
 end)
-Rule(Reduce(_{a=_}, _{b=List}, _{c=_}),
+Rule(Reduce(_{a=_}, _{b=_}, _{c=_}),
 function(a, b, c)
   local r = c
   for i = 1, #b do
@@ -1217,6 +1216,14 @@ function(a, e)
     return Power(a, Plus(e, 1))
   end
 end, Power)
+Rule(Times(Power(_{a=_}, _{e=_}), _{a=_}),
+function(a, e)
+  if a[0]==Int then
+    return nil
+  else
+    return Power(a, Plus(e, 1))
+  end
+end, Power)
 
 Rule(Times(Power(_{a=_}, _{e=_}),
            Power(_{a=_}, _{f=_})),
@@ -1362,7 +1369,7 @@ function(a)
   if l[2][0]==Int then
     return l[1]/l[2]
   else
-    return Together(l[1])/Together(l[2])
+    return l[1]/l[2]
   end
 end)
 
@@ -1565,7 +1572,7 @@ local function expToPoly(p, var)
     s[#s+1] = k
   end
   table.sort(s)
-  s = conv(s)
+  s = Poly.vars or conv(s)
   local subs = {}
   local n = #s
   local l = cat(List)
@@ -1816,7 +1823,7 @@ Rule(Sin(Times(_{p=Rat}, Pi)),
 function(p)
   local a, b = p[1], p[2]
   if a < 0 then 
-    return -Sin(a*Pi/b)
+    return -Sin((-a)*Pi/b)
   elseif a/b > 2 then
     return Sin((a%(2*b))*Pi/b)
   elseif a/b > 1 then
