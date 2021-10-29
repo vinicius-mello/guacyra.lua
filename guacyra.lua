@@ -325,27 +325,6 @@ local function cat(h, ...)
   return t
 end
 
-List = Symbol('List')
-guacyra.List = List
-_ = Symbol('_')
-guacyra._ = _
-__ = Symbol('__')
-guacyra.__ = __
-___ = Symbol('___')
-guacyra.___ = ___
-
-local True = Bool(true)
-guacyra.True = True
-local False = Bool(false)
-guacyra.False = False
-local function test(v) 
-  if isObject(v) and v[0]==Bool then
-    return v[1]
-  end
-  return v
-end
-guacyra.test = test
-
 local function Symbols(vl, global) 
   local vars = {}
   for var in vl:gmatch("%S+") do
@@ -357,6 +336,19 @@ local function Symbols(vl, global)
   end
   return unpack(vars)
 end
+
+List, _, __, ___ = Symbols('List _ __ ___', guacyra)
+local True = Bool(true)
+guacyra.True = True
+local False = Bool(false)
+guacyra.False = False
+local function test(v) 
+  if isObject(v) and v[0]==Bool then
+    return v[1]
+  end
+  return v
+end
+guacyra.test = test
 
 tostr = function(e)
   if not isObject(e) then return tostring(e) end
@@ -2162,19 +2154,13 @@ function dot(A, B)
   if n~=n2 then
     error('Wrong dimensions.')
   end
-  local rs = cat(List)
-  for i=1,m do 
-    local r = cat(List)
-    for j=1,p do
-      local c = cat(List)
-      for k=1,n do
-        c[#c+1] = A[i][k]*B[k][j]
-      end
-      r[#r+1] = Apply(Plus, c)
+  return Matrix(m, p, function(i,j)
+    local c = List()
+    for k=1,n do
+      c[#c+1] = A[i[1]][k]*B[k][j[1]]
     end
-    rs[#rs+1] = r
-  end
-  return Apply(Matrix, rs) 
+    return Apply(Plus, c)
+  end)
 end
 
 Dot.flat = true
