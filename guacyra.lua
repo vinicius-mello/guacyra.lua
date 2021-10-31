@@ -1,7 +1,7 @@
 
 -- Number Theory
 local floor, infinite, random = math.floor, math.huge, math.random
-local abs, max, min = math.abs, math.max, math.min
+local abs, max, min, ceil = math.abs, math.max, math.min, math.ceil
 
 local function gcd(a, b)
   while b ~= 0 do a, b = b, a % b end
@@ -866,6 +866,15 @@ function(a, b)
   end
   return b
 end)
+local Floor, Round, Ceil =
+  Symbols('Floor Round Ceil', guacyra)
+Rule(Floor(_{a=RatQ}),
+function(a) return Int(floor(numericValue(a))) end)
+Rule(Ceil(_{a=RatQ}),
+function(a) return Int(ceil(numericValue(a))) end)
+Rule(Round(_{a=RatQ}),
+function(a) return Int(floor(numericValue(a)+0.5)) end)
+
 local Factor = Symbols('Factor', guacyra)
 Rule(Factor(_{a=Int}),
 function(a)
@@ -2067,15 +2076,15 @@ function(a)
 end)
 Rule(Matrix(_{m=Int}, _{n=Int}, _{f=Fun}),
 function(m, n, f)
-  local rs = cat(Matrix)
+  local rs = List()
   for i=1,m[1] do
-    local r = cat(List)
+    local r = List()
     for j=1,n[1] do
       r[j] = f(i, j)
     end
     rs[i] = r
   end
-  return rs
+  return Apply(Matrix, rs)
 end)
 local function dims(m) 
   return #m, #m[1]
@@ -2162,7 +2171,6 @@ function dot(A, B)
     return Apply(Plus, c)
   end)
 end
-
 Dot.flat = true
 Rule(Dot(_{A=Matrix}, _{B=Matrix}), dot)
 Rule(Dot(__{As=Matrix}),
@@ -2365,8 +2373,8 @@ function(A)
   return r
 end)  
 
-local Sub, Tuple, Trans, Block = 
-  Symbols('Sub Tuple Trans Block', guacyra)
+local Sub, Tuple, Trans, Block, GramSchmidt = 
+  Symbols('Sub Tuple Trans Block GramSchmidt', guacyra)
 
 Rule(Inv(_{A=Matrix}),
 function(A)
@@ -2403,6 +2411,29 @@ Rule(Sub(_{a=Matrix},
   List(_{j1=Int},_{j2=Int})),
 function (a, i1, j1, j2)
   return Sub(a,{i1,i1},{j1,j2})
+end)
+
+function gramSchmidt(B)
+  local n,m = dims(B)
+  local R = Matrix()
+  local mu = Matrix(n,n,0)
+  for i=1,n do
+    local bi = Sub(B,i,{1,n})
+    local br = copy(bi)
+    for j=1,i-1 do
+      local bj = Sub(R,j,{1,n})
+      mu[i][j] = (bi..Trans(bj))/mu[j][j] 
+      br = br - mu[i][j]*bj
+    end
+    mu[i][i] = br..Trans(br)
+    R[#R+1] = br[1]
+  end
+  return R, mu
+end
+Rule(GramSchmidt(_{B=Matrix}),
+function(B)
+  local R = gramSchmidt(B)
+  return R
 end)
 
 Rule(Tuple(_{a=Matrix}),
