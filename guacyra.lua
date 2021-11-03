@@ -884,9 +884,9 @@ end)
 local Map, Apply, First, Rest, Reduce, GroupWith = 
   Symbols('Map Apply First Rest Reduce GroupWith', guacyra)
 
-Rule(Apply(_{a=_}, _{b=_}(___{c=_})),
-function(a, b, c)
-  return a(c)
+Rule(Apply(_{a=_}, _{b=_}),
+function(a, b)
+  return a(unpack(b))
 end)
 Rule(Map(_{a=_}, _{b=_}),
 function(a, b)
@@ -1061,9 +1061,9 @@ Rule(Times(1, __{b=_}),
 function(b) return Times(b) end)
 Rule(Times(0, __{b=_}),
 function(b) return Int(0) end)
-Rule(Times(-1, Plus(__{a=_})),
-function(a)
-  local r = Map(function(t) return Times(-1, t) end, List(a))
+Rule(Times(_{c=NumericQ}, Plus(__{a=_})),
+function(c, a)
+  local r = Map(function(t) return Times(c, t) end, List(a))
   return Apply(Plus, r)
 end)
 Rule(Times(_{a=_},_{a=_}),
@@ -2089,7 +2089,6 @@ end)
 local function dims(m) 
   return #m, #m[1]
 end
-local loadstring = load or loadstring
 Rule(Matrix(_{s=Str}),
 function(s)
   s=s[1]:gsub(';%s*', '\r\n')
@@ -2373,8 +2372,8 @@ function(A)
   return r
 end)  
 
-local Sub, Tuple, Trans, Block, GramSchmidt = 
-  Symbols('Sub Tuple Trans Block GramSchmidt', guacyra)
+local Sub, Tuple, Trans, Block = 
+  Symbols('Sub Tuple Trans Block', guacyra)
 
 Rule(Inv(_{A=Matrix}),
 function(A)
@@ -2413,11 +2412,48 @@ function (a, i1, j1, j2)
   return Sub(a,{i1,i1},{j1,j2})
 end)
 
+local GramSchmidt, LLL = 
+  Symbols('GramSchmidt LLL', guacyra)
+
+
+function nGS(B)
+  local m, n = dims(B)
+  local R = {}
+  local mu = {}
+  for i=1,m do
+    local r = {}
+    for j=1,n do r[#r+1] = 0 end
+    mu[#mu+1] = r
+  end
+  for i=1,m do
+    local bi = {}
+    local br = {}
+    for k=1,n do
+      bi[#bi+1] = numericValue(B[i][k])
+      br[k] = bi[k]
+    end
+    for j=1,i-1 do
+      local bj = {}
+      for k=1,n do bj[#bj+1] = R[j][k] end
+      local m = 0
+      for k=1,n do m = m + bi[k]*bj[k] end
+      mu[i][j] = m/mu[j][j]
+      m = mu[i][j]
+      for k=1,n do br[k] = br[k]-m*bj[k] end
+    end
+    local m = 0
+    for k=1,n do m = m + br[k]*br[k] end
+    mu[i][i] = m
+    R[#R+1] = br
+  end
+  return R, mu
+end
+
 function gramSchmidt(B)
-  local n,m = dims(B)
+  local m, n = dims(B)
   local R = Matrix()
-  local mu = Matrix(n,n,0)
-  for i=1,n do
+  local mu = Matrix(m,n,0)
+  for i=1,m do
     local bi = Sub(B,i,{1,n})
     local br = copy(bi)
     for j=1,i-1 do
@@ -2430,10 +2466,35 @@ function gramSchmidt(B)
   end
   return R, mu
 end
+
 Rule(GramSchmidt(_{B=Matrix}),
 function(B)
   local R = gramSchmidt(B)
   return R
+end)
+Rule(LLL(_{B=Matrix}),
+function(B)
+  B = copy(B)
+  local Bs, mu = nGS(B)
+  local k = 2
+  while k<= #Bs do
+    for j=k-1,1,-1 do
+      local m = mu[k][j]
+      if abs(m)>0.5 then
+        B[k] = (Matrix(B[k])-floor(m+0.5)*Matrix(B[j]))[1]
+        Bs, mu = nGS(B)
+      end
+    end
+    local l = mu[k][k]-(0.75-mu[k][k-1]^2)*mu[k-1][k-1]
+    if l>=0 then
+      k = k+1
+    else
+      B[k], B[k-1] = B[k-1], B[k]
+      Bs, mu = nGS(B)
+      k = max(k-1, 2)
+    end
+  end
+  return B
 end)
 
 Rule(Tuple(_{a=Matrix}),

@@ -1,99 +1,102 @@
-> Total time: 31.781565 s
+> Total time: 20.058432 s
 --------------------------------------------------------------------------------------
 | FILE                : FUNCTION                    : LINE   : TIME   : %     : #    |
 --------------------------------------------------------------------------------------
-| main                : ?                           :    32  : 13.4030: 42.2  :    1 |
-| main                : ?                           :    21  : 10.4576: 32.9  :    1 |
-| ./guacyra           : Anon                        :   451  : 10.1433: 31.9  : 22407|
-| ./guacyra           : match                       :   614  : 9.8001 : 30.8  : 3227 |
-| ./guacyra           : isAtom                      :   177  : 7.7733 : 24.5  : 478734|
-| ./guacyra           : ?                           :   784  : 6.9521 : 21.9  : 2828 |
-| main                : ?                           :    45  : 4.3876 : 13.8  :    1 |
-| ./guacyra           : matchR                      :   560  : 4.3526 : 13.7  : 10398|
-| ./guacyra           : isNumeric                   :   438  : 3.9784 : 12.5  : 49061|
-| ./guacyra           : reduce1                     :   834  : 3.7872 : 11.9  :  260 |
-| ./guacyra           : groupWith                   :   841  : 3.6999 : 11.6  :  246 |
-| ./guacyra           : a                           :   844  : 3.6813 : 11.6  :  416 |
-| main                : ?                           :    10  : 3.5318 : 11.1  :    1 |
-| ./guacyra           : numericValue                :   442  : 3.3803 : 10.6  : 44462|
-| ./guacyra           : isAtomHead                  :   171  : 2.5320 : 8.0   : 7938 |
-| ./guacyra           : Int                         :   241  : 1.2365 : 3.9   : 2958 |
-| ./guacyra           : Rat                         :   241  : 1.0352 : 3.3   : 2010 |
-| ./guacyra           : Sequence                    :   241  : 0.7636 : 2.4   :  607 |
-| ./guacyra           : String                      :   241  : 0.7229 : 2.3   :  767 |
-| ./guacyra           : Times                       :   241  : 0.7108 : 2.2   :  496 |
-| ./guacyra           : head                        :   241  : 0.6356 : 2.0   :  501 |
-| ./guacyra           : isSymbol                    :   185  : 0.6118 : 1.9   : 9157 |
-| ./guacyra           : _                           :   241  : 0.5838 : 1.8   :  398 |
-| ./guacyra           : __                          :   241  : 0.5714 : 1.8   :  369 |
-| ./guacyra           : eval                        :   723  : 0.5037 : 1.6   : 3577 |
-| ./guacyra           : Power                       :   241  : 0.3364 : 1.1   :  182 |
-| ./guacyra           : List                        :   241  : 0.3181 : 1.0   :  253 |
-| ./guacyra           : isInt                       :    11  : 0.2924 : 0.9   : 4020 |
-| ./guacyra           : conv                        :   224  : 0.2777 : 0.9   : 1430 |
-| ./guacyra           : equalR                      :   395  : 0.1420 : 0.4   : 231898|
-| ./guacyra           : Plus                        :   241  : 0.1166 : 0.4   :  106 |
-| ./guacyra           : isFunction                  :   190  : 0.1058 : 0.3   :  872 |
-| ./guacyra           : isObject                    :   167  : 0.1024 : 0.3   : 2248 |
-| ./guacyra           : gcd                         :     6  : 0.0903 : 0.3   : 2010 |
-| ./guacyra           : copy                        :   381  : 0.0775 : 0.2   :  648 |
-| ./guacyra           : Expand                      :   241  : 0.0663 : 0.2   :   50 |
-| ./guacyra           : b                           :  1140  : 0.0558 : 0.2   :    3 |
-| ./guacyra           : a                           :  1051  : 0.0500 : 0.2   :   14 |
-| ./guacyra           : a                           :  1100  : 0.0425 : 0.1   :   10 |
-| ./guacyra           : lhead                       :   215  : 0.0311 : 0.1   : 6474 |
-| ./guacyra           : Anon                        :   324  : 0.0292 : 0.1   :    5 |
-| ./guacyra           : map                         :   821  : 0.0242 : 0.1   :   26 |
-| ./guacyra           : tostr                       :   324  : 0.0164 : 0.1   :   44 |
-| ./guacyra           : reduce                      :   827  : 0.0144 : 0.0   :   25 |
-| ./guacyra           : Sqrt                        :   241  : 0.0125 : 0.0   :    6 |
-| ./guacyra           : root                        :  1194  : 0.0066 : 0.0   :   49 |
-| ./guacyra           : factorization               :   118  : 0.0050 : 0.0   :   49 |
-| ./guacyra           : factorize                   :   102  : 0.0029 : 0.0   :  110 |
-| ./guacyra           : a                           :  1153  : 0.0020 : 0.0   :    1 |
-| ./guacyra           : a                           :  1102  : 0.0005 : 0.0   :   19 |
-| ./guacyra           : a                           :  1053  : 0.0003 : 0.0   :   23 |
-| ./guacyra           : binomial                    :    13  : 0.0003 : 0.0   :    6 |
-| ./guacyra           : Symbols                     :   797  : 0.0003 : 0.0   :    1 |
-| ./guacyra           : test                        :   313  : 0.0001 : 0.0   :    2 |
-| ./guacyra           : Symbol                      :   241  : 0.0001 : 0.0   :    1 |
+| ./guacyra           : Apply                       :   251  : 12.3131: 61.4  :    7 |
+| ./guacyra           : Plus                        :   251  : 9.0543 : 45.1  : 2115 |
+| main                : ?                           :    70  : 7.8686 : 39.2  :    1 |
+| ./guacyra           : match                       :   663  : 7.7865 : 38.8  : 16052|
+| ./guacyra           : matchR                      :   609  : 6.3361 : 31.6  : 51878|
+| ./guacyra           : ?                           :   779  : 5.7507 : 28.7  : 16052|
+| main                : ?                           :    59  : 4.9154 : 24.5  :    1 |
+| ./guacyra           : Anon                        :   484  : 3.5170 : 17.5  : 24265|
+| ./guacyra           : isAtom                      :   204  : 2.2015 : 11.0  : 136470|
+| main                : ?                           :    32  : 1.2188 : 6.1   :    1 |
+| main                : ?                           :   101  : 1.1759 : 5.9   :    1 |
+| ./guacyra           : conv                        :   232  : 1.1098 : 5.5   : 12947|
+| ./guacyra           : Expand                      :   251  : 1.0715 : 5.3   :   69 |
+| ./guacyra           : add                         :   251  : 1.0319 : 5.1   :   76 |
+| ./guacyra           : cat                         :   315  : 1.0099 : 5.0   : 6662 |
+| ./guacyra           : Times                       :   251  : 0.9624 : 4.8   :  138 |
+| ./guacyra           : rref                        :  2262  : 0.9592 : 4.8   :    3 |
+| main                : ?                           :    50  : 0.9220 : 4.6   :    1 |
+| ./guacyra           : mul                         :   251  : 0.8590 : 4.3   :  121 |
+| ./guacyra           : RREF                        :   251  : 0.8540 : 4.3   :    2 |
+| ./guacyra           : isRational                  :   463  : 0.8108 : 4.0   : 50376|
+| main                : ?                           :    93  : 0.8010 : 4.0   :    1 |
+| ./guacyra           : numericValue                :   467  : 0.7487 : 3.7   : 47590|
+| ./guacyra           : isObject                    :   194  : 0.6403 : 3.2   : 13537|
+| main                : ?                           :    42  : 0.6145 : 3.1   :    1 |
+| ./guacyra           : Map                         :   251  : 0.5383 : 2.7   :   19 |
+| ./guacyra           : isSymbol                    :   212  : 0.5193 : 2.6   : 32245|
+| ./guacyra           : Det                         :   251  : 0.5053 : 2.5   :    1 |
+| ./guacyra           : a                           :   251  : 0.4994 : 2.5   :   70 |
+| ./guacyra           : Rat                         :   251  : 0.3667 : 1.8   : 1014 |
+| ./guacyra           : isInt                       :    28  : 0.3337 : 1.7   : 4344 |
+| ./guacyra           : Num                         :   251  : 0.3128 : 1.6   :    1 |
+| ./guacyra           : NumDen                      :   251  : 0.3113 : 1.6   :    1 |
+| ./guacyra           : Matrix                      :   251  : 0.3109 : 1.6   :    3 |
+| ./guacyra           : f                           :   251  : 0.2955 : 1.5   :   29 |
+| main                : integer index               :    95  : 0.2695 : 1.3   :   16 |
+| main                : ?                           :   111  : 0.2442 : 1.2   :    1 |
+| ./guacyra           : isAtomHead                  :   198  : 0.2162 : 1.1   : 13062|
+| ./guacyra           : lhead                       :   222  : 0.1877 : 0.9   : 11803|
+| ./guacyra           : isFun                       :   217  : 0.1790 : 0.9   : 11124|
+| ./guacyra           : Power                       :   251  : 0.1780 : 0.9   :   52 |
+| main                : ?                           :    11  : 0.1601 : 0.8   :    1 |
+| ./guacyra           : Int                         :   251  : 0.1208 : 0.6   : 1426 |
+| ./guacyra           : equalR                      :   422  : 0.1191 : 0.6   : 1414 |
+| ./guacyra           : Rank                        :   251  : 0.1172 : 0.6   :    1 |
+| ./guacyra           : gcd                         :     6  : 0.1062 : 0.5   : 2172 |
+| ./guacyra           : pow                         :   251  : 0.0954 : 0.5   :   13 |
+| ./guacyra           : Sqrt                        :   251  : 0.0836 : 0.4   :    8 |
+| main                : ?                           :    81  : 0.0365 : 0.2   :    1 |
+| ./guacyra           : GroupWith                   :   251  : 0.0351 : 0.2   :    2 |
+| ./guacyra           : test                        :   345  : 0.0301 : 0.2   :  386 |
+| ./guacyra           : Anon                        :   353  : 0.0277 : 0.1   :   27 |
+| ./guacyra           : List                        :   251  : 0.0250 : 0.1   :   20 |
+| ./guacyra           : tostr                       :   353  : 0.0218 : 0.1   :  173 |
+| ./guacyra           : makeExp                     :   251  : 0.0211 : 0.1   :   17 |
+| ./guacyra           : Numeric                     :   251  : 0.0210 : 0.1   :   15 |
+| ./guacyra           : Reduce                      :   251  : 0.0173 : 0.1   :    4 |
+| ./guacyra           : Set                         :   251  : 0.0158 : 0.1   :    6 |
+| ./guacyra           : isExpandedPolynomial        :  1561  : 0.0147 : 0.1   :    1 |
+| ./guacyra           : Union                       :   251  : 0.0105 : 0.1   :    1 |
+| ./guacyra           : isMonomial                  :  1538  : 0.0102 : 0.1   :   12 |
+| ./guacyra           : copy                        :   410  : 0.0061 : 0.0   :  110 |
+| ./guacyra           : Rest                        :   251  : 0.0051 : 0.0   :    2 |
+| ./guacyra           : In                          :   251  : 0.0040 : 0.0   :    2 |
+| ./guacyra           : Symbols                     :   328  : 0.0035 : 0.0   :    6 |
+| ./guacyra           : Intersection                :   251  : 0.0034 : 0.0   :    1 |
+| ./guacyra           : First                       :   251  : 0.0033 : 0.0   :    2 |
+| ./guacyra           : Range                       :   251  : 0.0028 : 0.0   :    1 |
+| ./guacyra           : subst                       :   592  : 0.0020 : 0.0   :   21 |
+| ./guacyra           : g                           :   251  : 0.0019 : 0.0   :    3 |
+| ./guacyra           : root                        :  1169  : 0.0017 : 0.0   :   12 |
+| ./guacyra           : less                        :   484  : 0.0015 : 0.0   :    8 |
+| ./guacyra           : factorization               :   143  : 0.0014 : 0.0   :   12 |
+| ./guacyra           : Symbol                      :   251  : 0.0014 : 0.0   :   16 |
+| ./guacyra           : factorize                   :   127  : 0.0013 : 0.0   :   36 |
+| ./guacyra           : _                           :   251  : 0.0009 : 0.0   :    1 |
+| ./guacyra           : Fun                         :   251  : 0.0006 : 0.0   :    6 |
+| ./guacyra           : tostring                    :   353  : 0.0003 : 0.0   :    3 |
+| ./guacyra           : binomial                    :    30  : 0.0003 : 0.0   :    6 |
+| ./guacyra           : Str                         :   251  : 0.0002 : 0.0   :    3 |
+| ./guacyra           : dims                        :  2089  : 0.0001 : 0.0   :    4 |
 --------------------------------------------------------------------------------------
-| ./guacyra           : a                           :  1159  : ~      : ~     :    2 |
-| ./guacyra           : fu                          :  1245  : ~      : ~     :    6 |
-| ./guacyra           : fu                          :  1193  : ~      : ~     :   49 |
-| ./guacyra           : fu                          :  1013  : ~      : ~     :   48 |
-| ./guacyra           : equal                       :   409  : ~      : ~     : 9190 |
-| ./guacyra           : Anon                        :   946  : ~      : ~     :    5 |
-| ./guacyra           : nplus                       :   965  : ~      : ~     : 2022 |
-| ./guacyra           : Anon                        :   951  : ~      : ~     :    8 |
-| ./guacyra           : b                           :  1038  : ~      : ~     :  155 |
-| ./guacyra           : fu                          :  1271  : ~      : ~     :    2 |
-| ./guacyra           : Anon                        :   409  : ~      : ~     : 221149|
-| ./guacyra           : a                           :   980  : ~      : ~     :    1 |
-| ./guacyra           : fu                          :  1173  : ~      : ~     :    1 |
-| ./guacyra           : Boolean                     :   241  : ~      : ~     :    2 |
-| ./guacyra           : fu                          :  1232  : ~      : ~     :    2 |
-| ./guacyra           : evalR                       :   658  : ~      : ~     :  501 |
-| ./guacyra           : ?                           :   954  : ~      : ~     :    2 |
-| ./guacyra           : fu                          :  1177  : ~      : ~     :    1 |
-| ./guacyra           : less                        :   451  : ~      : ~     :  834 |
-| ./guacyra           : a                           :   965  : ~      : ~     :   18 |
-| ./guacyra           : Anon                        :   949  : ~      : ~     :    6 |
-| ./guacyra           : fu                          :  1248  : ~      : ~     :   16 |
-| ./profiler          : stop                        :   225  : ~      : ~     :    1 |
-| ./guacyra           : fu                          :  1007  : ~      : ~     :    1 |
-| ./guacyra           : b                           :  1087  : ~      : ~     :   12 |
-| ./guacyra           : fu                          :  1120  : ~      : ~     :   95 |
-| ./guacyra           : fu                          :  1175  : ~      : ~     :    7 |
-| ./guacyra           : fu                          :  1171  : ~      : ~     :    5 |
-| ./guacyra           : Anon                        :   947  : ~      : ~     :    2 |
-| ./guacyra           : ntimes                      :   980  : ~      : ~     :  198 |
-| ./guacyra           : apply                       :   816  : ~      : ~     :    1 |
-| ./guacyra           : fu                          :  1001  : ~      : ~     :   16 |
-| ./guacyra           : fu                          :  1003  : ~      : ~     :   11 |
-| ./guacyra           : fu                          :  1067  : ~      : ~     :  110 |
-| ./guacyra           : a                           :  1009  : ~      : ~     :   10 |
-| ./guacyra           : fu                          :   964  : ~      : ~     :    6 |
-| ./guacyra           : fu                          :  1280  : ~      : ~     :   11 |
-| ./guacyra           : fu                          :  1288  : ~      : ~     :   21 |
+| ./guacyra           : eq                          :   441  : ~      : ~     :   14 |
+| main                : integer index               :    16  : ~      : ~     :    3 |
+| main                : integer index               :    17  : ~      : ~     :    3 |
+| main                : ?                           :   118  : ~      : ~     :    1 |
+| ./guacyra           : equal                       :   436  : ~      : ~     : 20557|
+| ./guacyra           : repl                        :   813  : ~      : ~     :    1 |
+| ./guacyra           : TeX                         :   251  : ~      : ~     :    1 |
+| ./guacyra           : eval                        :   727  : ~      : ~     : 3416 |
+| ./guacyra           : expToPoly                   :  1575  : ~      : ~     :    1 |
+| ./guacyra           : integer index               :  1066  : ~      : ~     :    6 |
+| ./guacyra           : integer index               :   476  : ~      : ~     :    8 |
+| ./guacyra           : getArgs                     :   748  : ~      : ~     :    1 |
+| ./guacyra           : sub                         :  1019  : ~      : ~     :   34 |
+| ./guacyra           : div                         :  1022  : ~      : ~     :   37 |
+| ./guacyra           : integer index               :   832  : ~      : ~     :  349 |
 --------------------------------------------------------------------------------------

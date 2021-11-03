@@ -220,11 +220,5 @@ for i=1,#test do
   print('\t time elapsed: ',os.clock()-time)
 end
 
-A = Matrix [[
-  -1 -2/3
-  3 4
-]]
-print(A)
-
 --profiler.stop()
 --profiler.report("profiler.log")
