@@ -2189,22 +2189,20 @@ local function diagonal(A)
   return r 
 end
 
-local function bird(A, X) 
-  local m, n = dims(A)
-  local d = diagonal(X)
-  for i=1,m do for j=1,n do
-    if j<i then
-      X[i][j] = Int(0)
-    end
+function detBird(A)
+  local n,Y,X,y,yl,x=#A,{},{}
+  for i=1,n do x={} for j=1,n do x[#x+1]=A[i][j] end Y[#Y+1],X[#X+1]={},x end
+  for l=1,n-1 do
+  yl=Int(0)
+  for i=1,n do for j=1,n do Y[i][j]=Int(0) end end
+  for i=n-l+1,1,-1 do for j=n,i,-1 do  
+  y = j>i and -X[i][j] or (i==n and Int(0) or yl+X[i+1][i+1])
+  yl = i==j and y or yl
+  for k=1,n do Y[i][k]=Y[i][k]+y*A[j][k] end
   end end
-  local nd = List(0)
-  for i=n-1,1,-1 do
-    nd[#nd+1] = Plus(d[i+1], nd[#nd])
+  Y,X=X,Y
   end
-  for i=1,n do
-    X[i][i] = Times(-1,nd[n-i+1])
-  end
-  return dot(X,A)
+  return X[1][1]
 end
 
 local function det(A) 
@@ -2248,12 +2246,7 @@ local function det(A)
     A[1][4]*A[2][2]*A[3][3]*A[4][1]-
     A[1][4]*A[2][3]*A[3][1]*A[4][2])
   end
-  local X = copy(A)
-  for i=1,n-1 do X = bird(A, X) end
-  if n%2 == 0 then
-    return Times(-1, X[1][1])
-  end
-  return X[1][1]
+  return detBird(A)
 end
 
 Rule(Det(_{A=Matrix}), det)

@@ -213,6 +213,24 @@ test[17] = function()
   print(A..Trans(A))
 end
 
+test[18] = function()
+  local A = RandInt({-4,4},5,5)
+  print(A)
+  print(Det(A))
+  A = RandInt({-4,4},6,6)
+  print(A)
+  print(Det(A))
+  A = RandInt({-2,2},8,8)
+  print(A)
+  print(Det(A))
+  local lambda = Symbol('\\lambda')
+  A = RandInt({-3,3},3,3)
+  print(A)
+  A = A-lambda*Matrix(3,3,1)
+  print(A)
+  print(Expand(Det(A)):tex())
+end
+
 for i=1,#test do
   print('Test ',i)
   local time = os.clock()
