@@ -938,8 +938,8 @@ function(a, b)
   return r
 end)
 
-local Cat, Range, RandInt, Shuffle, Choose = 
-  Symbols('Cat Range RandInt Shuffle Choose', guacyra)
+local Cat, Range, Rand, Shuffle, Choose = 
+  Symbols('Cat Range Rand Shuffle Choose', guacyra)
 
 Rule(Cat(___{c=_}),
 function(c)
@@ -961,11 +961,11 @@ function(a, b)
     t[#t+1] = Int(i) end
   return t
 end)
-Rule(RandInt({_{a=Int}, _{b=Int}}),
+Rule(Rand({_{a=Int}, _{b=Int}}),
 function(a, b)
   return Int(random(a[1], b[1]))
 end)
-Rule(RandInt({_{a=Int}, _{b=Int}},
+Rule(Rand({_{a=Int}, _{b=Int}},
   _{n=Int}),
 function(a, b, n)
   local t = cat(List)
@@ -989,7 +989,7 @@ function(n, m)
   -- https://stackoverflow.com/questions/2394246/algorithm-to-select-a-single-random-combination-of-values
   local s = List()
   for j= n[1]-m[1]+1,n[1] do
-    local t = RandInt({1, j})
+    local t = Rand({1, j})
     local f = true
     for i=1,#s do
       if s[i]:eq(t) then 
@@ -1009,7 +1009,7 @@ Rule(Choose(_{l=List}, _{m=Int}),
 function(l, m)
   local n = #l
   if m:eq(1) then
-    return l[RandInt({1,n})[1]]
+    return l[Rand({1,n})[1]]
   end
   local r = Choose(n, m)
   return Map(function(i) return l[i[1]] end, r)
@@ -2149,7 +2149,7 @@ function(rs)
     Str(t),
     '\\end{array}\\right]')
 end, Matrix)
-Rule(RandInt({_{a=Int}, _{b=Int}},
+Rule(Rand({_{a=Int}, _{b=Int}},
   _{m=Int}, _{n=Int}),
 function(a, b, m, n)
   return Matrix(m, n, function(i,j)
