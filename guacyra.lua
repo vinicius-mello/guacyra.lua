@@ -1015,6 +1015,23 @@ function(l, m)
   return Map(function(i) return l[i[1]] end, r)
 end)
 
+local Index, Append = 
+  Symbols('Index Append', guacyra)
+Rule(Index(_{a=_}, _{i=Int}),
+function(a, i)
+  return a[i[1]]
+end)
+Rule(Index(_{a=_}, _{i=Int}, _{j=Int}),
+function(a, i, j)
+  return a[i[1]][j[1]]
+end)
+Rule(Append(_{a=_}, _{b=_}),
+function(a, b)
+  a[#a+1] = b
+  return a
+end)
+  
+
 guacyra.__add = Plus
 guacyra.__sub = function(a, b) return Plus(a, Times(-1, b)) end
 guacyra.__unm = function(a) return Times(-1, a) end
