@@ -1396,8 +1396,8 @@ function(a)
   end
 end)
 
-local Set, In, Union, Intersection = 
-  Symbols('Set In Union Intersection', guacyra)
+local Set, In, Union, Intersection, PowerSet, Subset = 
+  Symbols('Set In Union Intersection PowerSet Subset', guacyra)
 Set.orderless = true
 Rule(Set(__{c=_}),
 function(c)
@@ -1450,6 +1450,35 @@ function(a, b)
     end
   end
   return False
+end)
+
+Rule(Subset(_{a=Set}, _{b=Set}),
+function(a, b)
+  for i=1,#a do
+    if not In(a[i], b):test() then
+      return False
+    end
+  end
+  return True
+end)
+
+Rule(PowerSet(_{a=Set}),
+function(a)
+  local r = Set()
+  for i=0,(2^#a)-1 do
+    local s = Set()
+    local j = i
+    local k = 1
+    while j~=0 do
+      if j%2==1 then
+        s = Union(s,Set(a[k])) 
+      end
+      k = k+1
+      j = floor(j/2) 
+    end
+    r = Union(r,Set(s))
+  end
+  return r
 end)
 
 local function deg(m) 
