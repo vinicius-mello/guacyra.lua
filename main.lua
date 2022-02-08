@@ -214,7 +214,7 @@ test[17] = function()
 end
 
 test[18] = function()
-  local A = Rand({-4,4},5,5)
+  local A = Rand({-4,5},5,5)
   print(A)
   print(Det(A))
   A = Rand({-4,4},6,6)
