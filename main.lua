@@ -1,5 +1,4 @@
-local guacyra = require('guacyra')
-guacyra.import()
+local guacyra = require('guacyra').import()
 
 --local profiler = require("profiler")
 --profiler.start()
