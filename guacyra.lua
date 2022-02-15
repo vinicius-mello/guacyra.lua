@@ -1733,7 +1733,7 @@ function() return Int(0) end)
 Rule(Sin(Pi),
 function() return Int(0) end)
 Rule(Sin(Times(_{n=Int}, Pi)),
-function() return Int(0) end)
+function(n) return Int(0) end)
 Rule(Sin(Times(_{p=Rat}, Pi)),
 function(p)
   local a, b = p[1], p[2]
@@ -1762,7 +1762,7 @@ function() return Int(1) end)
 Rule(Cos(Pi),
 function() return Int(-1) end)
 Rule(Cos(Times(_{n=Int}, Pi)),
-function() return Int((-1)^n[1]) end)
+function(n) return (-1)^n end)
 Rule(Cos(Times(_{p=Rat}, Pi)),
 function(p)
   local a, b = p[1], p[2]
