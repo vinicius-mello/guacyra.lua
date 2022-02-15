@@ -531,6 +531,9 @@ local function evalR(e, rec)
     for i = 1, #e do ex[i] = e[i] end
   end
   if head[0] == Fun then
+    if isObject(head[1]) then
+      return eval(head[1]:subst {_=ex[1],__=ex[2],___=ex[3]}, true)
+    end
     return eval(head[1](unpack(ex)))
   end
   local lh = lhead(head)
