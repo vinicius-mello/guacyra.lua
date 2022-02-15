@@ -79,16 +79,19 @@ local makeExp
 
 local function conv(a)
   if not isObject(a) then
-    if type(a) == 'number' then
+    local ta = type(a)
+    if ta == 'number' then
       a = Int(floor(a))
-    elseif type(a) == 'string' then
+    elseif ta == 'string' then
       a = Str(a)
-    elseif type(a) == 'boolean' then
+    elseif ta == 'boolean' then
       a = Bool(a) 
-    elseif type(a) == 'table' then
+    elseif ta == 'table' then
       a = makeExp(List, unpack(a))
-    elseif type(a) == 'function' then
+    elseif ta == 'function' then
       a = Fun(a)
+    elseif ta == 'nil' then
+      a = Nil
     end
   end
   return a
@@ -214,6 +217,9 @@ tostr = function(e)
     end
     if e[0] == Fun then
       return e.name or tostring(e[1])
+    end
+    if e[0] == Nil then
+      return 'Nil'
     end
   end
   if e[0] == _ then
