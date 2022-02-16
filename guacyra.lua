@@ -149,6 +149,9 @@ makeExp = function(h, ...)
     local f = false or t[0].isPattern
     for i = 1, #t do
       t[i] = conv(t[i])
+      if (t[i]==_ or t[i]==__ or t[i]==___) then
+        f = true
+      end
       f = f or t[i].isPattern  
     end
     if not f then
@@ -525,7 +528,7 @@ local function evalR(e, rec)
   --print('eval: ', e)
   local head = e[0]
   local ex = cat(head)
-  if rec then 
+  if rec and not holdAll then 
     for i = 1, #e do ex[i] = eval(e[i], rec) end
   else
     for i = 1, #e do ex[i] = e[i] end
@@ -681,6 +684,42 @@ Rule(Equal(_{a=_}, _{b=_}),
 function(a, b) return Bool(equal(a, b)) end)
 Rule(Less(_{a=_}, _{b=_}),
 function(a, b) return Bool(less(a, b)) end)
+guacyra.LT = Less 
+guacyra.EQ = Equal 
+local GT, LE, GE, And, Or, Not = 
+  Symbols('GT LE GE And Or Not', guacyra)
+Rule(GT(_{a=_}, _{b=_}),
+function(a, b) return Bool(less(b, a)) end)
+Rule(LE(_{a=_}, _{b=_}),
+function(a, b) return Bool(less(a, b) or equal(a, b)) end)
+Rule(GE(_{a=_}, _{b=_}),
+function(a, b) return Bool(less(b, a) or equal(a, b)) end)
+Rule(And(__{a=_}),
+function(a)
+  for i=1,#a do
+    if not test(a[i]) then
+      return False
+    end
+  end
+  return True
+end)
+Rule(Or(__{a=_}),
+function(a)
+  for i=1,#a do
+    if test(a[i]) then
+      return True
+    end
+  end
+  return False
+end)
+Rule(Not(_{a=_}),
+function(a)
+  if test(a) then
+    return False
+  end
+  return True
+end)
+
 Rule(Numeric(_{a=_}),
 function(a)
   return Bool(isRational(a))
@@ -691,6 +730,17 @@ function(ex)
 end)
 guacyra.NumericQ = NumericQ
 
+local If = Symbols('If', guacyra)
+If.holdAll = true
+Rule(If(_{a=_}, _{b=_}, _{c=_}), 
+function(a, b, c)
+  local t = eval(a, true)
+  if test(t) then
+    return eval(b, true)
+  else
+    return eval(c, true)
+  end
+end) 
 local GCD, Binomial, Factorial, Mod, Max, Min =
   Symbols('GCD Binomial Factorial Mod Max Min', guacyra)
 Rule(GCD(_{a=Int},_{b=Int}),
@@ -804,6 +854,18 @@ function(a, b)
   return r
 end)
 
+local Filter = 
+  Symbols('Filter', guacyra)
+Rule(Filter(_{a=_}, _{b=_}), function(a, b)
+  local l = cat(List)
+  for i=1,#b do
+    if test(a(b[i])) then
+      l[#l+1] = b[i]
+    end
+  end
+  return  Apply(b[0], l)
+end)
+
 local Cat, Range, Rand, Shuffle, Choose = 
   Symbols('Cat Range Rand Shuffle Choose', guacyra)
 
@@ -823,8 +885,41 @@ end)
 Rule(Range(_{a=Int}, _{b=Int}),
 function(a, b)
   local t = cat(List)
-  for i = a[1], b[1] do
-    t[#t+1] = Int(i) end
+  local d = 1
+  if a[1]>b[1] then
+    d = -1
+  end
+  for i = a[1], b[1], d do
+    t[#t+1] = Int(i)
+  end
+  return t
+end)
+Rule(Range(_{a=RatQ}, _{b=RatQ}, _{c=RatQ}),
+function(a, b, c)
+  local t = cat(List)
+  local na, nb = 
+    numericValue(a), numericValue(b)
+  c = Abs(c)
+  if na>nb then
+    c = -c
+  end
+  local nc = numericValue(c)
+  for i = na, nb, nc do
+    t[#t+1] = a
+    a = a+c
+  end
+  return t
+end)
+Rule(Range(_{b=Int}),
+function(b)
+  local t = cat(List)
+  local a = 1
+  if b[1]<0 then
+    a = -1
+  end
+  for i = a, b[1], a do
+    t[#t+1] = Int(i)
+  end
   return t
 end)
 Rule(Rand({_{a=Int}, _{b=Int}}),
