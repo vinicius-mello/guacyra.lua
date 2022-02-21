@@ -1,5 +1,6 @@
 .lua-format
 profiler.lua
+*.log
 # Compiled Lua sources
 luac.out
 

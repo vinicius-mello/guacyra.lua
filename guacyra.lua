@@ -98,7 +98,7 @@ local function conv(a)
   return a
 end
 
-local eval
+local eval, tostr
 
 makeExp = function(h, ...)
   local t = {...}
@@ -277,22 +277,23 @@ local function copy(ex)
 end
 guacyra.copy = copy
 
-local function equalR(ea, eb)
+local function equal(ea, eb)
   local sa = len(ea)
   local sb = len(eb)
   if sa ~= sb then return false end
   if isAtom(ea) and isAtom(eb) then
-    for i = 0, len(ea) do if ea[i] ~= eb[i] then return false end end
+    for i = 0, len(ea) do 
+      if ea[i] ~= eb[i] then return false end
+    end
     return true
   end
   if not isAtom(ea) and not isAtom(eb) then
-    for i = 0, len(ea) do if not equalR(ea[i], eb[i]) then return false end end
+    for i = 0, len(ea) do 
+      if not equal(ea[i], eb[i]) then return false end
+    end
     return true
   end
   return false
-end
-local function equal(ea, eb)
-  return equalR(ea, eb)
 end
 guacyra.equal = equal
 --guacyra.__eq = equal
@@ -529,7 +530,7 @@ local function evalR(e, rec)
   --print('eval: ', e)
   local head = e[0]
   local ex = cat(head)
-  if rec and not holdAll then 
+  if rec and not head.holdAll then 
     for i = 1, len(e) do ex[i] = eval(e[i], rec) end
   else
     for i = 1, len(e) do ex[i] = e[i] end
@@ -796,12 +797,6 @@ function(a) return Int(ceil(numericValue(a))) end)
 Rule(Round(_{a=RatQ}),
 function(a) return Int(floor(numericValue(a)+0.5)) end)
 
-local Factor = Symbols('Factor', guacyra)
-Rule(Factor(_{a=Int}),
-function(a)
-  return Apply(List, factorization(a[1]))
-end)
-
 local Map, Apply, First, Rest, Reduce, GroupWith = 
   Symbols('Map Apply First Rest Reduce GroupWith', guacyra)
 
@@ -857,6 +852,12 @@ function(a, b)
   end
   r[len(r)+1] = l
   return r
+end)
+
+local Factor = Symbols('Factor', guacyra)
+Rule(Factor(_{a=Int}),
+function(a)
+  return Apply(List, factorization(a[1]))
 end)
 
 local Filter, Outer = 

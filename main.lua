@@ -230,12 +230,16 @@ test[18] = function()
   print(Expand(Det(A)):tex())
 end
 
+local ttime = 0
 for i=1,#test do
   print('Test ',i)
   local time = os.clock()
   test[i]()
-  print('\t time elapsed: ',os.clock()-time)
+  local tel = os.clock()-time
+  print('\t time elapsed: ', tel)
+  ttime = ttime + tel
 end
 
+print('\t total time: ', ttime)
 --profiler.stop()
 --profiler.report("profiler.log")
