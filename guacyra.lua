@@ -2580,6 +2580,16 @@ function (a)
   return r
 end)
 
+local function texcmd(c, ...)
+  local s = '\\'..c
+  local a = {...}
+  for i=1,#a do
+    local t = a[i]:tex()
+    s = s..'{'..t..'}'
+  end
+  tex.sprint(s)
+end
+
 guacyra.import = function()
   for k,v in pairs(guacyra) do
     if isObject(v) then
@@ -2588,6 +2598,7 @@ guacyra.import = function()
   end
   _G['Symbols'] = Symbols
   _G['Rule'] = Rule
+  _G['texcmd'] = texcmd
   return guacyra
 end
 
