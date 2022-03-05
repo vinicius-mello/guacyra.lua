@@ -2584,7 +2584,7 @@ local function texcmd(c, ...)
   local s = '\\'..c
   local a = {...}
   for i=1,#a do
-    local t = a[i]:tex()
+    local t = conv(a[i]):tex()
     s = s..'{'..t..'}'
   end
   tex.sprint(s)
