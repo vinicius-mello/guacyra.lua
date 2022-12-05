@@ -12,7 +12,7 @@ local guacyra = {}
 local Symbol = {'Symbol'}
 Symbol[0] = Symbol
 setmetatable(Symbol, guacyra)
-guacyra.version = '0.5.1'
+guacyra.version = '0.5.2'
 
 local function makeAtom(s)
   local t = {s}
@@ -82,7 +82,16 @@ local function conv(a)
   if not isObject(a) then
     local ta = type(a)
     if ta == 'number' then
-      a = Int(floor(a))
+      if a ~= floor(a) then
+        local n, d, dmax, eps = 1, 1, 1e7, 1e-15
+        while math.abs(n/d-a)>eps and d<dmax do
+          d=d+1
+          n=floor(a*d)
+        end
+        a = Rat(n, d)
+      else 
+        a = Int(a)
+      end
     elseif ta == 'string' then
       a = Str(a)
     elseif ta == 'boolean' then
