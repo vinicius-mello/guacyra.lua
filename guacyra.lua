@@ -218,7 +218,7 @@ tostr = function(e)
   if not isObject(e) then return tostring(e) end
   if isAtom(e) then
     if e[0] == Symbol then return e[1] end
-    if e[0] == Str then return e[1] end
+    if e[0] == Str then return '"'.. e[1] ..'"' end
     if e[0] == Int then return '' .. e[1] end
     if e[0] == Rat then return '' .. e[1] .. '/' .. e[2] end
     if e[0] == Bool then
@@ -258,7 +258,7 @@ tostr = function(e)
   end
   local s, cs
   if e[0] == List then
-    s, cs = '[', ']'
+    s, cs = '{', '}'
   else
     s = tostr(e[0]) .. '('
     cs = ')'
@@ -1029,6 +1029,8 @@ local val = function(a)
   if isAtom(a) then
     if a[0]==Rat then
       return a[1]/a[2]
+    elseif a[0]==Nil then
+      return nil
     end
     return a[1]
   end
