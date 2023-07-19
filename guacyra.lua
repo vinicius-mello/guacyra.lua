@@ -612,6 +612,8 @@ guacyra.val = function(ex)
   if isAtom(ex) then
     if isRational(ex) then
       return numericValue(ex)
+    elseif ex[0] == Nil then
+      return nil
     else
       return ex[1]
     end
@@ -1029,7 +1031,7 @@ local val = function(a)
   if isAtom(a) then
     if a[0]==Rat then
       return a[1]/a[2]
-    elseif a[0]==Nil then
+    elseif a==Nil then
       return nil
     end
     return a[1]
