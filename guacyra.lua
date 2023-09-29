@@ -12,7 +12,7 @@ local guacyra = {}
 local Symbol = {'Symbol'}
 Symbol[0] = Symbol
 setmetatable(Symbol, guacyra)
-guacyra.version = '0.5.2'
+guacyra.version = '0.5.3'
 
 local function makeAtom(s)
   local t = {s}
