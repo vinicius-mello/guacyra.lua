@@ -1062,6 +1062,9 @@ function(a)
   return Times(2, a)
 end)
 
+local Sum = Symbol 'Sum' -- unevaluated sum
+guacyra.Sum = Sum
+
 Times.flat = true
 Times.orderless = true
 Rule(Times(),
@@ -1792,6 +1795,19 @@ function(p)
   end
   return Str(s)
 end, Poly)
+
+Rule(TeX(Sum(__{c=_})),
+function(c)
+  local s = ''
+  for i=1,len(c) do
+    local t = TeX(c[i])
+    if t[1]:sub(1,1)~='-' and i~=1 then
+      s = s..'+'
+    end
+    s = s..t[1]
+  end
+  return Str(s)
+end)
 
 Rule(TeX(Plus(__{c=_})),
 function(c)
