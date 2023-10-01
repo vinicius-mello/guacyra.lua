@@ -12,7 +12,7 @@ local guacyra = {}
 local Symbol = {'Symbol'}
 Symbol[0] = Symbol
 setmetatable(Symbol, guacyra)
-guacyra.version = '0.5.3'
+guacyra.version = '0.5.4'
 
 local function makeAtom(s)
   local t = {s}
@@ -41,30 +41,38 @@ guacyra.Nil = Nil
 local unpack = unpack or table.unpack
 
 local function isObject(e)
-  return getmetatable(e) == guacyra
+  return rawequal(getmetatable(e), guacyra)
 end
 
 local function isAtomHead(e)
-  return e == Symbol or e == Int or
-    e == Rat or e == Str or
-    e == Bool or e == Fun or e == Nil
+  return rawequal(e, Symbol) or 
+    rawequal(e, Int) or
+    rawequal(e, Rat) or 
+    rawequal(e, Str) or
+    rawequal(e, Bool) or 
+    rawequal(e, Fun) or 
+    rawequal(e, Nil)
 end
 
 local function isAtom(e)
   local h = e[0]
-  return h == Symbol or h == Int or
-    h == Rat or h == Str or
-    h == Bool or h == Fun or e == Nil
+  return rawequal(h, Symbol) or 
+    rawequal(h, Int) or
+    rawequal(h, Rat) or 
+    rawequal(h, Str) or
+    rawequal(h, Bool) or 
+    rawequal(h, Fun) or 
+    rawequal(e, Nil)
 end
 guacyra.isAtom = isAtom
 
 local function isSymbol(e)
-  return e[0] == Symbol
+  return rawequal(e[0], Symbol)
 end
 guacyra.isSymbol = isSymbol
 
 local function isFun(e)
-  return e[0] == Fun
+  return rawequal(e[0], Fun)
 end
 guacyra.isFun = isFun
 
@@ -113,7 +121,7 @@ makeExp = function(h, ...)
   local t = {...}
   t[0] = h
   setmetatable(t, guacyra)
-  if h == Symbol then
+  if rawequal(h, Symbol) then
     if type(t[1]) ~= 'string' then
       error('Invalid symbol: Symbol(' .. tostr(t[1]) .. ')')
     end
@@ -121,7 +129,7 @@ makeExp = function(h, ...)
     t.down = {}
     return t
   end
-  if h == Rat then
+  if rawequal(h, Rat) then
     if not isInt(t[1]) or not isInt(t[2]) then
       error('Ill-formed Rat')
     end
@@ -138,7 +146,7 @@ makeExp = function(h, ...)
     end
     return t
   end
-  if (h==_ or h==__ or h==___)
+  if (rawequal(h, _) or rawequal(h, __) or rawequal(h, ___))
     and type(t[1])=='table' and not isObject(t[1]) then
     local key = ''
     local type = _
@@ -149,7 +157,7 @@ makeExp = function(h, ...)
       end
     end
     t[1]=Str(key)
-    if type ~= _ then
+    if not rawequal(type, _) then
       t[2] = type
     end
     t.isPattern = true
@@ -159,7 +167,7 @@ makeExp = function(h, ...)
     local f = false or t[0].isPattern
     for i = 1, len(t) do
       t[i] = conv(t[i])
-      if (t[i]==_ or t[i]==__ or t[i]==___) then
+      if (rawequal(t[i], _) or rawequal(t[i], __) or rawequal(t[i], ___)) then
         f = true
       end
       f = f or t[i].isPattern  
@@ -207,7 +215,7 @@ guacyra.True = True
 local False = Bool(false)
 guacyra.False = False
 local function test(v) 
-  if isObject(v) and v[0]==Bool then
+  if isObject(v) and rawequal(v[0], Bool) then
     return v[1]
   end
   return v
@@ -217,39 +225,39 @@ guacyra.test = test
 tostr = function(e)
   if not isObject(e) then return tostring(e) end
   if isAtom(e) then
-    if e[0] == Symbol then return e[1] end
-    if e[0] == Str then return '"'.. e[1] ..'"' end
-    if e[0] == Int then return '' .. e[1] end
-    if e[0] == Rat then return '' .. e[1] .. '/' .. e[2] end
-    if e[0] == Bool then
+    if rawequal(e[0], Symbol) then return e[1] end
+    if rawequal(e[0], Str) then return '"'.. e[1] ..'"' end
+    if rawequal(e[0], Int) then return '' .. e[1] end
+    if rawequal(e[0], Rat) then return '' .. e[1] .. '/' .. e[2] end
+    if rawequal(e[0], Bool) then
       if e[1] then
         return 'True'
       else
         return 'False'
       end
     end
-    if e[0] == Fun then
+    if rawequal(e[0], Fun) then
       return e.name or tostring(e[1])
     end
-    if e[0] == Nil then
+    if rawequal(e[0], Nil) then
       return 'Nil'
     end
   end
-  if e[0] == _ then
+  if rawequal(e[0], _) then
     if e[2] then
       return e[1][1] .. '_' .. tostr(e[2])
     else
       return e[1][1] .. '_'
     end
   end
-  if e[0] == __ then
+  if rawequal(e[0], __) then
     if e[2] then
       return e[1][1] .. '__' .. tostr(e[2])
     else
       return e[1][1] .. '__'
     end
   end
-  if e[0] == ___ then
+  if rawequal(e[0], ___) then
     if e[2] then
       return e[1][1] .. '___' .. tostr(e[2])
     else
@@ -257,7 +265,7 @@ tostr = function(e)
     end
   end
   local s, cs
-  if e[0] == List then
+  if rawequal(e[0], List) then
     s, cs = '{', '}'
   else
     s = tostr(e[0]) .. '('
@@ -305,7 +313,7 @@ local function equal(ea, eb)
   return false
 end
 guacyra.equal = equal
---guacyra.__eq = equal
+guacyra.__eq = equal
 guacyra.eq = function(a, b)
   return equal(a, conv(b))
 end
@@ -329,13 +337,13 @@ local Numeric, Sequence, Plus, Times, Power =
   Symbols('Numeric Sequence Plus Times Power', guacyra)
 
 local function isRational(e)
-  return e[0] == Int or e[0] == Rat
+  return rawequal(e[0], Int) or rawequal(e[0], Rat)
 end
 
 local function numericValue(e)
-  if e[0] == Int then
+  if rawequal(e[0], Int) then
     return e[1]
-  elseif e[0] == Rat then
+  elseif rawequal(e[0], Rat) then
     return e[1] / e[2]
   end
 end
@@ -354,7 +362,7 @@ local function less(u, v)
   if isRational(u) and isRational(v) then
     return numericValue(u) < numericValue(v)
   end
-  if u[0] == Str and v[0] == Str then
+  if rawequal(u[0], Str) and rawequal(v[0], Str) then
     return u[1] < v[1]
   end
   -- O2
@@ -362,8 +370,8 @@ local function less(u, v)
     return u[1] < v[1]
   end
   -- O3
-  if (u[0] == Plus and v[0] == Plus)
-  or (u[0] == Times and v[0] == Times) then
+  if (rawequal(u[0], Plus) and rawequal(v[0], Plus))
+  or (rawequal(u[0], Times) and rawequal(v[0], Times)) then
     local m = len(u)
     local n = len(v)
     while m > 0 and n > 0 do
@@ -377,7 +385,7 @@ local function less(u, v)
     return m < n
   end
   -- O4
-  if u[0] == Power and v[0] == Power then
+  if rawequal(u[0], Power) and rawequal(v[0], Power) then
     if equal(u[1], v[1]) then
       return less(u[2], v[2])
     else
@@ -385,11 +393,11 @@ local function less(u, v)
     end
   end
   -- O5.5
-  if u[0]==Mono and v[0]==Mono then
+  if rawequal(u[0], Mono) and rawequal(v[0], Mono) then
     return Mono.order(u, v)
   end
   -- O6
-  if u[0] == v[0] then
+  if rawequal(u[0], v[0]) then
     local m = len(u)
     local n = len(v)
     local i = 1
@@ -409,21 +417,21 @@ local function less(u, v)
     return false
   end
   -- O8
-  if u[0] == Times then
+  if rawequal(u[0], Times) then
     return less(u, cat(Times, v))
-  elseif v[0] == Times then
+  elseif rawequal(v[0], Times) then
     return less(cat(Times, u), v)
   end
   -- O9
-  if u[0] == Power then
+  if rawequal(u[0], Power) then
     return less(u, cat(Power, v, 1))
-  elseif v[0] == Power then
+  elseif rawequal(v[0], Power) then
     return less(cat(Power, u, 1), v)
   end
   -- O10
-  if u[0] == Plus then
+  if rawequal(u[0], Plus) then
     return less(u, cat(Plus, v))
-  elseif v[0] == Plus then
+  elseif rawequal(v[0], Plus) then
     return less(cat(Plus, u), v)
   end
   -- O12
@@ -459,7 +467,7 @@ guacyra.__index = guacyra
 
 local function subst(ex, sub)
   if isAtom(ex) then
-    if ex[0] == Symbol and sub[ex[1]] ~= nil then
+    if rawequal(ex[0], Symbol) and sub[ex[1]] ~= nil then
       local a = conv(sub[ex[1]])
       return copy(a)
     else
@@ -476,7 +484,7 @@ guacyra.subst = subst
 
 local function matchR(ex, pat, cap)
   if isAtom(pat) then return equal(pat, ex) end
-  if pat[0] == _ then
+  if rawequal(pat[0], _) then
     local name = pat[1][1]
     local head = pat[2]
     if head ~= nil then
@@ -496,10 +504,10 @@ local function matchR(ex, pat, cap)
     end
   end
   for i = 0, len(pat) do
-    if (pat[i][0] == ___ or pat[i][0] == __) and i ~=
+    if (rawequal(pat[i][0], ___) or rawequal(pat[i][0], __)) and i ~=
       len(pat) then error('Blank sequence must be the last part: ' .. tostr(pat)) end
-    if pat[i][0] == ___ or
-      (pat[i][0] == __ and i <= len(ex)) then
+    if rawequal(pat[i][0], ___) or
+      (rawequal(pat[i][0], __) and i <= len(ex)) then
       local name = pat[i][1][1]
       local head = pat[i][2]
       local exr = cat(Sequence)
@@ -544,7 +552,7 @@ local function evalR(e, rec)
   else
     for i = 1, len(e) do ex[i] = e[i] end
   end
-  if head[0] == Fun then
+  if rawequal(head[0], Fun) then
     if isObject(head[1]) then
       return eval(head[1]:subst {_=ex[1],__=ex[2],___=ex[3]}, true)
     end
@@ -554,7 +562,7 @@ local function evalR(e, rec)
   if not lh.sequenceHold then
     local i = 1
     while i <= len(ex) do
-      if ex[i][0] == Sequence then
+      if rawequal(ex[i][0], Sequence) then
         local exi = table.remove(ex, i)
         for j = 1, len(exi) do table.insert(ex, i + j - 1, exi[j]) end
         i = i + len(exi)
@@ -901,7 +909,7 @@ Rule(Cat(___{c=_}),
 function(c)
   local t = ""
   for i = 1, len(c) do
-    if isAtom(c[i]) and c[i][0] == Str then
+    if isAtom(c[i]) and rawequal(c[i][0], Str) then
       t = t .. (c[i][1])
     else
       t = t .. (c[i]:tostring())
@@ -1029,9 +1037,9 @@ guacyra.__div = function(a, b) return Times(a, Power(b, -1)) end
 guacyra.__pow = Power
 local val = function(a) 
   if isAtom(a) then
-    if a[0]==Rat then
+    if rawequal(a[0], Rat) then
       return a[1]/a[2]
-    elseif a==Nil then
+    elseif rawequal(a, Nil) then
       return nil
     end
     return a[1]
@@ -1238,7 +1246,7 @@ end)
 
 Rule(Times(_{a=_}, Power(_{a=_}, _{e=_})),
 function(a, e)
-  if a[0]==Int then
+  if rawequal(a[0], Int) then
     return nil
   else
     return Power(a, Plus(e, 1))
@@ -1246,7 +1254,7 @@ function(a, e)
 end, Power)
 Rule(Times(Power(_{a=_}, _{e=_}), _{a=_}),
 function(a, e)
-  if a[0]==Int then
+  if rawequal(a[0], Int) then
     return nil
   else
     return Power(a, Plus(e, 1))
@@ -1394,7 +1402,7 @@ end)
 Rule(Together(_{a=_}),
 function(a)
   local l = NumDen(a)
-  if l[2][0]==Int then
+  if rawequal(l[2][0], Int) then
     return l[1]/l[2]
   else
     return l[1]/l[2]
@@ -1570,16 +1578,16 @@ local function isPolynomial(p, var)
     return true
   elseif Numeric(p):test() then
     return true 
-  elseif p[0]==Plus or p[0]==Times then
+  elseif rawequal(p[0], Plus) or rawequal(p[0], Times) then
     for i=1,len(p) do
       if not isPolynomial(p[i], var) then
         return false
       end
     end
     return true 
-  elseif p[0]==Power then
+  elseif rawequal(p[0], Power) then
     if isPolynomial(p[1], var) 
-      and p[2][0]==Int and p[2][1]>0 then
+      and rawequal(p[2][0], Int) and p[2][1]>0 then
       return true
     end
   end
@@ -1592,13 +1600,13 @@ local function isMonomial(p, var)
     return true
   elseif Numeric(p):test() then
     return true 
-  elseif p[0]==Power then
+  elseif rawequal(p[0], Power) then
     if isSymbol(p[1]) 
-      and p[2][0]==Int and p[2][1]>0 then
+      and rawequal(p[2][0], Int) and p[2][1]>0 then
       var[p[1][1]] = p[1]
       return true
     end
-  elseif p[0]==Times then
+  elseif rawequal(p[0], Times) then
     for i=1,len(p) do
       if not isMonomial(p[i], var) then
         return false
@@ -1612,7 +1620,7 @@ end
 local function isExpandedPolynomial(p, var)
   if isMonomial(p, var) then
     return true
-  elseif p[0]==Plus then
+  elseif rawequal(p[0], Plus) then
     for i=1,len(p) do
       if not isMonomial(p[i], var) then
         return false
@@ -1703,7 +1711,7 @@ end)
 Rule(TeX(Times(__{a=_})),
 function(a)
   local l = NumDen(Times(a))
-  if l[2][0]==Int then
+  if rawequal(l[2][0], Int) then
     return Apply(Cat,Map(TeXP,List(a)))
   else
     local num = TeX(l[1])
