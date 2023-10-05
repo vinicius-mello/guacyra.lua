@@ -1817,6 +1817,21 @@ function(c)
   return Str(s)
 end)
 
+local Dec = Symbol 'Dec'
+guacyra.Dec = Dec
+Rule(TeX(Dec(_{n=RatQ})), 
+function (n)
+  return Str(#n.."")
+end, Dec)
+
+Rule(TeX(Dec(_{n=RatQ}, _{m=Int})), 
+function (n, m)
+  if #m>=0 then
+    return Str(string.format('%.'..(#m)..'f', #n))
+  end
+  return nil  
+end, Dec)
+
 Rule(TeX(Plus(__{c=_})),
 function(c)
   local vars = {}
