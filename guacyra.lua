@@ -1564,7 +1564,6 @@ Set.orderless = true
 
 Rule(Union(a_Set, b_Set),
 function(a, b)
-  print(a,b)
   local r = Apply(List, a)
   for i=1,len(b) do r[len(r)+1] = b[i] end
   return Apply(Set, r)
@@ -1984,9 +1983,7 @@ function(c)
   local vars = {}
   local pp = Plus(c)
   if isExpandedPolynomial(pp, vars) then
-    print(pp)
     local p, s = expToPoly(pp, vars)
-    print(p)
     local v = Poly.vars
     Poly.vars = s
     local r = TeX(p)
