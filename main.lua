@@ -1,4 +1,4 @@
-local guacyra = require('guacyra').import()
+require('guacyra')
 
 --local profiler = require("profiler")
 --profiler.start()
@@ -8,7 +8,6 @@ local test = {}
 
 
 test[1] = function()
-  local f, g, h = Symbols('f g h')
   local l = Range(1, 3)
   print('Map(f, Range(1, 3)) =', Map(f, l))
   assert(Map(f, l):eq({f(1), f(2), f(3)}))
@@ -29,7 +28,6 @@ test[1] = function()
 end
 
 test[2] = function()
-  local x, y = Symbols('x y')
   local one = Int(1)
   print('(1+2)+3 =',one+2+3)
   print('1+2+3 =',Plus(one+2+3))
@@ -39,7 +37,6 @@ test[2] = function()
 end
 
 test[3] = function()
-  local x, y, f = Symbols('x y f')
   local one = Int(1)
   print(Sqrt(128)*Sqrt(6))
   print(Expand((x-y)*(x+y)))
@@ -52,7 +49,6 @@ test[4] = function()
   print('(Sqrt(2)+Sqrt(3)+Sqrt(4))^2 =', r)
   assert(r:eq((9+4*Sqrt(2)+4*Sqrt(3)+2*Sqrt(6))))
 end
-
 
 
 test[5] = function()
@@ -78,7 +74,6 @@ test[6] = function()
 end
 
 test[7] = function()
-  local a, b, c = Symbols('a b c')
   local exp = Union(Set(a,b,c),Set(a,b,1,2))
   print('Union(Set(a,b,c),Set(a,b,1,2)) =', exp)
   exp = Intersection(Set(a,b,c),Set(a,b,1,2))
@@ -98,7 +93,6 @@ test[8] = function()
 end
 
 test[9] = function()
-  local a, b, c = Symbols('a b c')
   local A = Matrix({1,2,12,a},{-2,3,11,b},{-1,4,18,c})
   local r = RREF(A)
   r = Num(r[3][4])
@@ -115,7 +109,6 @@ test[10] = function()
 end
 
 test[11] = function()
-  local x,y = Symbols('x y')
   local exp = -1+2*x+x^2-3*x*y+y^2+y
   print(exp)
   local r = TeX(exp)
@@ -124,7 +117,6 @@ test[11] = function()
 end
 
 test[12] = function()
-  local a, b, c = Symbols('a b c')
   local A = Matrix({1,2,3,4},{2,3,4,5},{3,4,5,6})
   local exp = Sub(A, {1,2}, {3,4})
   print('Sub(A, {1,2}, {3,4}) =', exp)
@@ -139,7 +131,6 @@ end
 
 test[13] = function()
   print('Expand (x-1)(1+...+x^n)')
-  local x = Symbols('x')
   local s = List()
   for i=0, 9 do
     s[#s+1] = Power(x, i) 
@@ -155,7 +146,6 @@ test[13] = function()
 end
 
 test[14] = function()
-  local x, f = Symbols('x f')
   print('Diff(Cos(f(x)^2), x) =',TeX(Diff(Cos(f(x)^2), x)))
 end
 
