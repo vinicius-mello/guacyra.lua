@@ -233,9 +233,14 @@ Slot1, Slot2, Slot3 = Symbols('Slot1 Slot2 Slot3')
 
 local slots = {Slot1 = Slot1, Slot2 = Slot2, Slot3 = Slot3}
 
-setmetatable(_G, {
+function guacyraOn()
+  setmetatable(_G, {
   __index = function (tab , var)
     local r
+    r = rawget(tab, var)
+    if r~=nil then
+      return r
+    end
     r = guacyra.__symbols[var]
     if r == nil then
       local k,bl,h = string.match(var, "(%w*)(_+)(%w*)")
@@ -246,6 +251,7 @@ setmetatable(_G, {
         else 
           if h ~= "" and guacyra.__symbols[h] == nil then
             error("Undefined head: "..h)
+            return rawget(tab, var)
           end
           h = guacyra.__symbols[h] or _
           local t = {}
@@ -267,6 +273,13 @@ setmetatable(_G, {
     return r
   end
 })
+end
+
+function guacyraOff() 
+  setmetatable(_G,nil)
+end
+
+guacyraOn()
 
 List = Symbols ('List', guacyra.__symbols)
 _, __, ___ = Symbols '_ __ ___'
@@ -489,6 +502,11 @@ local function less(u, v)
   elseif not isRational(u) and isRational(v) then
     return false
   end
+  if isBlank(u) and not isBlank(v) then
+    return true
+  elseif not isBlank(u) and isBlank(v) then
+    return false
+  end
   -- O8
   if rawequal(u[0], Times) then
     return less(u, cat(Times, v))
@@ -544,6 +562,14 @@ local function subst(ex, sub)
       local a = conv(sub[ex[1]])
       return copy(a)
     else
+      return ex
+    end
+  elseif isBlank(ex) then
+    local t = tostr(ex)
+    if sub[t] ~= nil then
+      local a = conv(sub[t])
+      return copy(a)
+    else 
       return ex
     end
   else
@@ -615,6 +641,88 @@ guacyra.match = function(exp, pat, cap)
   if ret then for k, v in pairs(cap2) do cap[k] = v end end
   return ret
 end
+
+local function getBlanksR(ex, r)
+  if isAtom(ex) then
+    return
+  elseif isBlank(ex) and ex[2]==nil then
+    local t = tostr(ex)
+    r[t] = ex
+  else
+    for i = 0, len(ex) do getBlanksR(ex[i], r) end
+  end
+end
+
+local function blanks(ex)
+  local r = {}
+  getBlanksR(ex, r)
+  return r
+end
+guacyra.blanks = blanks
+
+local function algSubst(ex)
+  local bl = ex:blanks()
+  local bs = {}
+  for k,v in pairs(bl) do
+    bs[#bs+1] = k
+  end
+  local n = #bs
+  local s = 3^n
+  local i = 0
+  return function()
+    local sub = {}
+    if i == s then
+      return nil
+    end
+    local k = i
+    for j=1,n do
+      local v = (k % 3) - 1
+      local bsj = bs[j]
+      if v<0 then
+        sub[bsj] = bl[bsj]
+      else 
+        sub[bsj] = Int(v)
+      end
+      k = floor(k / 3)
+    end
+    i = i + 1
+    return sub
+  end
+end
+
+local function tablelen(T)
+  local count = 0
+  for _ in pairs(T) do count = count + 1 end
+  return count
+end
+
+local function algMatch(ex, pat, cap)
+  local capm, ss
+  local m = 0
+  for s in algSubst(pat) do
+    local cap2 = {}
+    local p = pat:subst(s):eval(true)
+    if matchR(ex, p, cap2) then
+      local mm = tablelen(cap2) 
+      if mm>m then
+        m, capm, ss = mm, cap2, s
+      end
+    end
+  end
+  if m==0 then return false end
+  for k,v in pairs(capm) do
+    cap[k] = v
+  end
+  for k,v in pairs(ss) do
+    local kk = string.sub(k, 1, -2)
+    if cap[kk] == nil then
+      cap[kk] = v
+    end
+  end
+  return true
+end
+
+guacyra.algMatch = algMatch
 
 local function evalR(e, rec)
   --print('eval: ', e)
@@ -693,7 +801,7 @@ guacyra.val = function(ex)
   if isAtom(ex) then
     if isRational(ex) then
       return numericValue(ex)
-    elseif ex[0] == Nil then
+    elseif rawequal(ex[0], Nil) then
       return nil
     else
       return ex[1]
@@ -774,6 +882,29 @@ local function Rule(pat, fu, sym)
   end
 end
 guacyra.Rule = Rule
+
+local function AlgRule(pat, fu, sym)
+  local tab
+  if not sym then
+    sym = lhead(pat)
+    tab = sym.down
+  else
+    tab = sym.up
+  end
+--  local args = getArgs(fu)
+  local args = getArgs(pat)
+  tab[len(tab)+1] = function(ex)
+    local cap = {}
+    if ex:algMatch(pat, cap) then
+      local cargs = {}
+      for i=1,len(args) do cargs[len(cargs)+1] = cap[args[i]] end
+      return fu(unpack(cargs))
+    else
+      return nil
+    end
+  end
+end
+guacyra.AlgRule = AlgRule
 
 local function replR(ex, pat, fu, lvl, args)
   local cap = {}
@@ -929,6 +1060,17 @@ function(a, b)
   return  Apply(b[0], l)
 end)
 
+Rule(If(a_, b_, c_), 
+function(a, b, c)
+  local t = eval(a, true)
+  if test(t) then
+    return eval(b, true)
+  else
+    return eval(c, true)
+  end
+end) 
+If.holdAll = true
+
 Rule(First(a_(b_, c___)),
 function(a, b, c)
   return b
@@ -1015,6 +1157,11 @@ function(c)
     end
   end
   return Str(t)
+end)
+
+Rule(Sub(s_Str, {a_Int, b_Int}),
+function(s, a, b)
+  return Str(string.sub(#s, #a, #b))
 end)
 
 Rule(Range(a_Int, b_Int),
@@ -2283,14 +2430,14 @@ function(a, b, c, d)
   return Complex(a+c, b+d) 
 end, Complex)
 
-Rule(Plus(a_NumericQ,
+Rule(Plus(a_,
           Complex(c_, d_)),
 function(a, c, d)
   return Complex(a+c, d) 
 end, Complex)
 
 Rule(Plus(Complex(c_, d_),
-          a_NumericQ),
+          a_),
 function(c, d, a)
   return Complex(a+c, d) 
 end, Complex)
@@ -2301,14 +2448,14 @@ function(a, b, c, d)
   return Complex(a*c-b*d, a*d+b*c) 
 end, Complex)
 
-Rule(Times(a_NumericQ,
+Rule(Times(a_,
           Complex(c_, d_)),
 function(a, c, d)
   return Complex(a*c, a*d) 
 end, Complex)
 
 Rule(Times(Complex(c_, d_),
-           a_NumericQ),
+           a_ ),
 function(c, d, a)
   return Complex(a*c, a*d) 
 end, Complex)
@@ -2819,6 +2966,126 @@ function (a)
   end
   return r
 end)
+
+
+local OutputP = Symbol("OutputP")
+
+Rule(OutputP(Plus(c__)),
+function(c)
+  return Cat('(', Output(Plus(c)), ')')
+end)
+
+Rule(OutputP(a_),
+function(a) return Output(a) end)
+
+Rule(Output(Times(p_Rat, a_Symbol)),
+function(p, a)
+  if p[1] < 0 then
+    local s = (Output(Times(-p[1], a)))[1]
+    return Str('-'..s..'/'..p[2])
+  else
+    local s = (Output(Times(p[1], a)))[1]
+    return Str(''..s..'/'..p[2])
+  end
+end)
+
+guacyra.output = function(e)
+  return Output(e)[1]
+end
+
+Rule(Output(Times(a_Rat, Power(b_Int, p_Rat))),
+function(a, b, p)
+  if p[1] == 1 and p[2] == 2 then
+    local r = Output(Power(b, p))[1]
+    if a[1] <0 then
+      if a[1]~= -1 then r = (-a[1])..r end
+      r = '-'..r..'/'..a[2]
+    else
+      if a[1] ~= 1 then r = a[1]..r end
+      r = ''..r..'/'..a[2]
+    end
+    return Str(r)
+  end
+  return nil
+end)
+
+Rule(Output(p_Rat),
+function(p)
+  local a, b = p[1], p[2]
+  if a<0 then
+    return Str('-'..(-a)..'/'..b)
+  else
+    return Str(''..(a)..'/'..b)
+  end
+end)
+
+Rule(Output(a_Int),
+function(a)
+  return Str(''..(a[1]))
+end)
+
+Rule(Output(Times(-1,a__)),
+function(a) 
+  return Cat('-', OutputP(Times(a)))
+end)
+
+Rule(Output(Times(a__)),
+function(a)
+  local l = NumDen(Times(a))
+  if rawequal(l[2][0], Int) then
+    return Reduce(
+      Fun(Cat(_1, '*', _2)),
+      Map(OutputP, List(a))
+    )
+  else
+    local num = Output(l[1])
+    local den = Output(l[2])
+    return Cat('',num,'/',den)
+  end
+end)
+
+Rule(Output(Power(a_,b_Rat)),
+function(a, b)
+  return Cat(OutputP(a),'^', OutputP(b))
+end)
+
+Rule(Output(Power(a_, b_Int)),
+function(a, b)
+  if b[1]<0 then
+    return Cat('1/',Output(Power(a,-b[1])))
+  else
+    b = ''..b[1]
+    return Cat(OutputP(a), '^'..b)
+  end
+end)
+
+Rule(Output(Power(a_Symbol, b_)),
+function(a, b)
+  return Cat(a[1] .. '^', OutputP(b))
+end)
+
+Rule(Output(Power(a_, b_)),
+function(a, b)
+    return Cat(OutputP(a), '^', OutputP(b))
+end)
+
+Rule(Output(Plus(a__)),
+function(a)
+  return Reduce(
+    Fun(
+      If(Equal(Sub(_2,{1,1}), '-'),
+        Cat(_1, _2),
+      Cat(_1, '+', _2)
+      )
+    ), Map(Output, List(a))
+  )
+end)
+
+Rule(Output(a_),
+function(a)
+  return Str(a:tostring())
+end)
+
 
 local function texcmd(c, ...)
   local s = '\\'..c
