@@ -2925,6 +2925,31 @@ function (a)
   return l
 end)
 
+Rule(Matrix(m_Int, n_Int, t_Tuple),
+function(m, n, t)
+  if len(t)==(#m*#n) then
+    return Matrix(m, n,
+    function(i, j)
+        return t[#n*(#i-1)+(#j-1)+1]
+    end)
+  else
+    return nil
+  end
+end, Tuple)
+
+Rule(Cross(a_Tuple, b_Tuple),
+function(a, b)
+  if len(a)==3 and len(b)==3 then
+    local l = Tuple()
+    l[1] = a[2]*b[3]-a[3]*b[2]
+    l[2] = a[3]*b[1]-a[1]*b[3]
+    l[3] = a[1]*b[2]-a[2]*b[1]
+    return l
+  else 
+    return nil
+  end
+end)
+
 Rule(TeX(Tuple(a__)),
 function(a)
   local s='\\left('..fmtseq(a)..'\\right)'
