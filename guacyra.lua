@@ -2579,42 +2579,33 @@ function(a, b, m, n)
   end)
 end)
 
-local function dot(A, B)
+Rule(Dot(A_Matrix, B_Matrix),
+function(A, B)
   local m, n = dims(A)
   local n2, p = dims(B)
-  if n~=n2 then
-    error('Wrong dimensions.')
+  if n==n2 then
+    return Matrix(m, p, function(i,j)
+      local c = List()
+      for k=1,n do
+        c[k] = A[i[1]][k]*B[k][j[1]]
+      end
+      return Apply(Plus, c)
+    end)
+  else
+    return nil
   end
-  return Matrix(m, p, function(i,j)
-    local c = List()
-    for k=1,n do
-      c[len(c)+1] = A[i[1]][k]*B[k][j[1]]
-    end
-    return Apply(Plus, c)
-  end)
-end
-
-Rule(Dot(A_Matrix, B_Matrix), dot)
+end)
 
 guacyra.__concat = Dot
 Dot.flat = true
 
 Rule(Dot(As__Matrix),
 function(As)
+  if len(As)==2 then
+    return nil
+  end
   return Reduce(Dot, List(As))
 end)
-
-local function diagonal(A) 
-  local r = cat(List)
-  local m, n = dims(A)
-  if m~=n then
-    error('Not a square matrix')
-  end
-  for i=1,n do
-    r[len(r)+1] = A[i][i]
-  end
-  return r 
-end
 
 local function detBird(A)
   local n,Y,X,y,yl,x=len(A),{},{}
@@ -2636,7 +2627,7 @@ end
 local function det(A) 
   local m, n = dims(A)
   if m~=n then 
-    error('Not a square matrix.')
+    return nil
   end
   if n==2 then
     return (A[1][1]*A[2][2]-A[1][2]*A[2][1])
@@ -2742,7 +2733,7 @@ function(A)
   return Int(rref(B))
 end)
 
-Rule(Matrix(m_Int, n_Int, k_),
+Rule(Matrix(m_Int, n_Int, k_RatQ),
 function(m, n, k)
   return Matrix(m, n,
     function(i,j)
@@ -2797,6 +2788,9 @@ end)
 Rule(Inv(A_Matrix),
 function(A)
   local m, n = dims(A)
+  if n~=m then 
+    return nil
+  end
   local AI = Block({A, Matrix(n, n, 1)})
   AI = RREF(AI)
   return Sub(AI,{1,n},{n+1,2*n})
@@ -2945,6 +2939,18 @@ function(a, b)
     l[2] = a[3]*b[1]-a[1]*b[3]
     l[3] = a[1]*b[2]-a[2]*b[1]
     return l
+  else 
+    return nil
+  end
+end)
+
+Rule(Dot(a_Tuple, b_Tuple),
+function(a, b)
+  local n = len(a)
+  if n==len(b) then
+    local r = 0
+    for i=1,n do r=r+a[i]*b[i] end
+    return r
   else 
     return nil
   end
