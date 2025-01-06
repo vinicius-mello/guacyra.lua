@@ -1774,6 +1774,53 @@ function(a)
   return r
 end)
 
+Tuple.orderless = false
+
+Rule(Plus(a_Tuple, b_Tuple),
+function(a, b)
+  local n = len(a)
+  if n==len(b) then
+    local r = Tuple()
+    for i=1,n do r[i]=a[i]+b[i] end
+    return r
+  else 
+    return nil
+  end
+end)
+
+Rule(Times(a_, b_Tuple),
+function(a, b)
+  local n = len(b)
+  local r = Tuple()
+  for i=1,n do r[i]=a*b[i] end
+  return r
+end)
+
+Rule(Dot(a_Tuple, b_Tuple),
+function(a, b)
+  local n = len(a)
+  if n==len(b) then
+    local r = 0
+    for i=1,n do r=r+a[i]*b[i] end
+    return r
+  else 
+    return nil
+  end
+end)
+
+Rule(Cross(a_Tuple, b_Tuple),
+function(a, b)
+  if len(a)==3 and len(b)==3 then
+    local l = Tuple()
+    l[1] = a[2]*b[3]-a[3]*b[2]
+    l[2] = a[3]*b[1]-a[1]*b[3]
+    l[3] = a[1]*b[2]-a[2]*b[1]
+    return l
+  else 
+    return nil
+  end
+end)
+
 local function deg(m) 
   local r = 0
   local l = m[2]
@@ -1795,20 +1842,14 @@ end
 
 Mono.order = deglex
 
-Rule(Power(Mono(c_NumericQ, l_List), p_Int),
+Rule(Power(Mono(c_NumericQ, l_Tuple), p_Int),
 function(c, l, p) 
-  l = copy(l)
-  for i=1,len(l) do l[i] = l[i]*p end
-  return Mono(c^p, l)
+  return Mono(c^p, p*l)
 end, Mono)
 
 Rule(Times(n_Mono, m_Mono),
 function(n, m)
-  local l = List()
-  for i=1,len(n[2]) do
-    l[len(l)+1] = n[2][i]+m[2][i]
-  end
-  return Mono(n[1]*m[1], l)
+  return Mono(n[1]*m[1], n[2]+m[2])
 end, Mono)
 
 Rule(Times(c_NumericQ, m_Mono),
@@ -1922,8 +1963,8 @@ local function expToPoly(p, var)
   s = Poly.vars or conv(s)
   local subs = {}
   local n = len(s)
-  local l = cat(List)
-  for i=1,n do l[len(l)+1] = Int(0) end
+  local l = cat(Tuple)
+  for i=1,n do l[i] = Int(0) end
   for i=1,n do 
     local ll = copy(l)
     ll[i] = Int(1)
@@ -2050,7 +2091,7 @@ local defaultVars =
   List('x_1','x_2','x_3','x_4','x_5',
        'x_6','x_7','x_8','x_9','x_{10}')
 
-Rule(TeX(Mono(c_NumericQ, l_List)),
+Rule(TeX(Mono(c_NumericQ, l_Tuple)),
 function(c, l)
   local s
   local vars = Poly.vars or defaultVars
@@ -2171,6 +2212,13 @@ function(a)
   local s='\\left['..fmtseq(a)..'\\right]'
   return Str(s)
 end)
+
+Rule(TeX(Tuple(a__)),
+function(a)
+  local s='\\left('..fmtseq(a)..'\\right)'
+  return Str(s)
+end
+,Tuple)
 
 Rule(TeX(s_Symbol),
 function(s)
@@ -2930,38 +2978,6 @@ function(m, n, t)
     return nil
   end
 end, Tuple)
-
-Rule(Cross(a_Tuple, b_Tuple),
-function(a, b)
-  if len(a)==3 and len(b)==3 then
-    local l = Tuple()
-    l[1] = a[2]*b[3]-a[3]*b[2]
-    l[2] = a[3]*b[1]-a[1]*b[3]
-    l[3] = a[1]*b[2]-a[2]*b[1]
-    return l
-  else 
-    return nil
-  end
-end)
-
-Rule(Dot(a_Tuple, b_Tuple),
-function(a, b)
-  local n = len(a)
-  if n==len(b) then
-    local r = 0
-    for i=1,n do r=r+a[i]*b[i] end
-    return r
-  else 
-    return nil
-  end
-end)
-
-Rule(TeX(Tuple(a__)),
-function(a)
-  local s='\\left('..fmtseq(a)..'\\right)'
-  return Str(s)
-end
-,Tuple)
 
 Rule(Trans(a_Matrix),
 function (a)
