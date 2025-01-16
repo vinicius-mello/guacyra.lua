@@ -702,6 +702,7 @@ local function algMatch(ex, pat, cap)
   for s in algSubst(pat) do
     local cap2 = {}
     local p = pat:subst(s):eval(true)
+    print(ex, p)
     if matchR(ex, p, cap2) then
       local mm = tablelen(cap2) 
       if mm>m then
