@@ -998,6 +998,16 @@ function(a, b)
   return Int(gcd(a[1], b[1]))
 end)
 
+Rule(GCD(a_Int, l__Int),
+function(a, l)
+  return GCD(a, GCD(l))
+end)
+
+Rule(GCD(List(l__Int)),
+function(l)
+  return GCD(l)
+end)
+
 Rule(Binomial(a_Int, b_Int),
 function(a, b)
   return Int(binomial(a[1], b[1]))
