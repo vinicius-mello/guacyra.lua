@@ -46,23 +46,23 @@ local function isObject(e)
 end
 
 local function isAtomHead(e)
-  return rawequal(e, Symbol) or 
+  return rawequal(e, Symbol) or
     rawequal(e, Int) or
-    rawequal(e, Rat) or 
+    rawequal(e, Rat) or
     rawequal(e, Str) or
-    rawequal(e, Bool) or 
-    rawequal(e, Fun) or 
+    rawequal(e, Bool) or
+    rawequal(e, Fun) or
     rawequal(e, Nil)
 end
 
 local function isAtom(e)
   local h = e[0]
-  return rawequal(h, Symbol) or 
+  return rawequal(h, Symbol) or
     rawequal(h, Int) or
-    rawequal(h, Rat) or 
+    rawequal(h, Rat) or
     rawequal(h, Str) or
-    rawequal(h, Bool) or 
-    rawequal(h, Fun) or 
+    rawequal(h, Bool) or
+    rawequal(h, Fun) or
     rawequal(e, Nil)
 end
 guacyra.isAtom = isAtom
@@ -81,23 +81,23 @@ local _, __, ___
 
 local function isBlank(e)
   local h = e[0]
-  return rawequal(h, _) or 
+  return rawequal(h, _) or
     rawequal(h, __) or
     rawequal(h, ___)
 end
 
-local Slot1, Slot2, Slot3 
+local Slot1, Slot2, Slot3
 
 local function isSlot(e)
-  return rawequal(e, Slot1) or 
+  return rawequal(e, Slot1) or
     rawequal(e, Slot2) or
     rawequal(e, Slot3)
 end
 
-local function lhead(e) 
+local function lhead(e)
   if isSymbol(e) then
     return e
-  else 
+  else
     return lhead(e[0])
   end
 end
@@ -117,13 +117,13 @@ local function conv(a)
           n=floor(a*d)
         end
         a = Rat(n, d)
-      else 
+      else
         a = Int(a)
       end
     elseif ta == 'string' then
       a = Str(a)
     elseif ta == 'boolean' then
-      a = Bool(a) 
+      a = Bool(a)
     elseif ta == 'table' then
       a = makeExp(List, unpack(a))
     elseif ta == 'function' then
@@ -190,7 +190,7 @@ makeExp = function(h, ...)
       if isSlot(t[i]) then
         f = true
       end
-      f = f or t[i].isPattern  
+      f = f or t[i].isPattern 
     end
     if not f then
       local r = eval(t)
@@ -217,7 +217,7 @@ local function cat(h, ...)
   return t
 end
 
-local function Symbols(vl, global) 
+local function Symbols(vl, global)
   local vars = {}
   for var in vl:gmatch("%S+") do
     local sym = Symbol(var)
@@ -248,7 +248,7 @@ function guacyraOn()
         local l = len(bl)
         if l == 1 and k == '' and (h=='1' or h=='2' or h=='3') then
           r = slots['Slot'..h]
-        else 
+        else
           if h ~= "" and guacyra.__symbols[h] == nil then
             error("Undefined head: "..h)
             return rawget(tab, var)
@@ -265,7 +265,7 @@ function guacyraOn()
           end
           guacyra.__symbols[var] = r
         end
-      else 
+      else
         r = Symbol(var)
         guacyra.__symbols[var] = r
       end
@@ -275,7 +275,7 @@ function guacyraOn()
 })
 end
 
-function guacyraOff() 
+function guacyraOff()
   setmetatable(_G,nil)
 end
 
@@ -289,7 +289,7 @@ local False = Bool(false)
 guacyra.__symbols.True = True
 guacyra.__symbols.False = False
 
-local function test(v) 
+local function test(v)
   if isObject(v) and rawequal(v[0], Bool) then
     return v[1]
   end
@@ -384,13 +384,13 @@ local function equal(ea, eb)
   local sb = len(eb)
   if sa ~= sb then return false end
   if isAtom(ea) and isAtom(eb) then
-    for i = 0, len(ea) do 
+    for i = 0, len(ea) do
       if ea[i] ~= eb[i] then return false end
     end
     return true
   end
   if not isAtom(ea) and not isAtom(eb) then
-    for i = 0, len(ea) do 
+    for i = 0, len(ea) do
       if not equal(ea[i], eb[i]) then return false end
     end
     return true
@@ -569,7 +569,7 @@ local function subst(ex, sub)
     if sub[t] ~= nil then
       local a = conv(sub[t])
       return copy(a)
-    else 
+    else
       return ex
     end
   else
@@ -680,7 +680,7 @@ local function algSubst(ex)
       local bsj = bs[j]
       if v<0 then
         sub[bsj] = bl[bsj]
-      else 
+      else
         sub[bsj] = Int(v)
       end
       k = floor(k / 3)
@@ -704,7 +704,7 @@ local function algMatch(ex, pat, cap)
     local p = pat:subst(s):eval(true)
     print(ex, p)
     if matchR(ex, p, cap2) then
-      local mm = tablelen(cap2) 
+      local mm = tablelen(cap2)
       if mm>m then
         m, capm, ss = mm, cap2, s
       end
@@ -729,7 +729,7 @@ local function evalR(e, rec)
   --print('eval: ', e)
   local head = e[0]
   local ex = cat(head)
-  if rec and not head.holdAll then 
+  if rec and not head.holdAll then
     for i = 1, len(e) do ex[i] = eval(e[i], rec) end
   else
     for i = 1, len(e) do ex[i] = e[i] end
@@ -772,7 +772,7 @@ local function evalR(e, rec)
     if uphead.up then
       for j = 1, len(uphead.up) do
         tex = uphead.up[j](ex)
-        if tex then 
+        if tex then
           return --[[eval]](tex)
         end
       end
@@ -815,8 +815,8 @@ local function getArgs(pat)
   local args = {}
   local argt = {}
   local function tra(pat, args)
-    if isAtom(pat) then 
-      return 
+    if isAtom(pat) then
+      return
     end
     if isBlank(pat) then
       local s = pat[1][1]
@@ -846,7 +846,7 @@ local function getArgs(fun)
     if 'pcall' ~= info.name then return end
     for i = 1, max_args do
       local name, value = debug.getlocal(2, i)
-      if '(*temporary)' == name 
+      if '(*temporary)' == name
         or '(temporary)' == name then
         debug.sethook(hook)
         error('')
@@ -910,8 +910,8 @@ guacyra.AlgRule = AlgRule
 local function replR(ex, pat, fu, lvl, args)
   local cap = {}
   if lvl==0 then
-    return ex 
-  end 
+    return ex
+  end
   if ex:match(pat, cap) then
     local cargs = {}
     for i=1,len(args) do cargs[len(cargs)+1] = cap[args[i]] end
@@ -939,11 +939,11 @@ guacyra.repl = repl
 
 Rule(Equal(a_, b_),
 function(a, b) return Bool(equal(a, b)) end)
-guacyra.EQ = Equal 
+guacyra.EQ = Equal
 
 Rule(Less(a_, b_),
 function(a, b) return Bool(less(a, b)) end)
-guacyra.LT = Less 
+guacyra.LT = Less
 
 Rule(GT(a_, b_),
 function(a, b) return Bool(less(b, a)) end)
@@ -1071,7 +1071,7 @@ function(a, b)
   return  Apply(b[0], l)
 end)
 
-Rule(If(a_, b_, c_), 
+Rule(If(a_, b_, c_),
 function(a, b, c)
   local t = eval(a, true)
   if test(t) then
@@ -1079,7 +1079,7 @@ function(a, b, c)
   else
     return eval(c, true)
   end
-end) 
+end)
 If.holdAll = true
 
 Rule(First(a_(b_, c___)),
@@ -1148,7 +1148,7 @@ Rule(Outer(a_, b_, c_),
 function(a, b, c)
   local l = cat(List)
   for i=1,len(b) do
-    local r = cat(List) 
+    local r = cat(List)
     for j=1,len(c) do
       r[len(r)+1] = a(b[i], c[j])
     end
@@ -1191,7 +1191,7 @@ end)
 Rule(Range(a_RatQ, b_RatQ, c_RatQ),
 function(a, b, c)
   local t = cat(List)
-  local na, nb = 
+  local na, nb =
     numericValue(a), numericValue(b)
   c = Abs(c)
   if na>nb then
@@ -1250,13 +1250,13 @@ function(n, m)
     local t = Rand({1, j})
     local f = true
     for i=1,len(s) do
-      if s[i]:eq(t) then 
+      if s[i]:eq(t) then
         s[len(s)+1] = Int(j)
         f = false
         break
       end
-    end 
-    if f then 
+    end
+    if f then
       s[len(s)+1] = t
     end
   end
@@ -1296,7 +1296,7 @@ guacyra.__unm = function(a) return Times(-1, a) end
 guacyra.__mul = Times
 guacyra.__div = function(a, b) return Times(a, Power(b, -1)) end
 guacyra.__pow = Power
-local val = function(a) 
+local val = function(a)
   if isAtom(a) then
     if rawequal(a[0], Rat) then
       return a[1]/a[2]
@@ -1395,9 +1395,9 @@ function(a)
     end
   end
   l[len(l)+1] = last
-  if flag then 
+  if flag then
     return Apply(Plus, l)
-  else 
+  else
     return nil
   end
 end)
@@ -1422,9 +1422,9 @@ function(a)
     end
   end
   l[len(l)+1] = last
-  if flag then 
+  if flag then
     return Apply(Times, l)
-  else 
+  else
     return nil
   end
 end)
@@ -1523,7 +1523,7 @@ end)
 
 Rule(Power(Times(a__), b_),
 function(a, b)
-  return Apply(Times, 
+  return Apply(Times,
     Map(function(t) return Power(t, b) end, List(a)))
 end)
 
@@ -1594,7 +1594,7 @@ function(a, b, n)
   return Apply(Plus, l)
 end)
 
-Rule(Expand(Plus(a__)), 
+Rule(Expand(Plus(a__)),
 function(a)
   return Apply(Plus, Map(Expand, List(a)))
 end)
@@ -1609,7 +1609,7 @@ function(a, b)
   end
 end)
 
-Rule(Expand(a_), 
+Rule(Expand(a_),
 function(a)
   return a
 end)
@@ -1713,7 +1713,7 @@ function(c)
       flag = true
     end
   end
-  if flag then 
+  if flag then
     return r
   end
   return nil
@@ -1733,7 +1733,7 @@ function(a, b)
   local i = 1
   local j = 1
   while i<=len(a) and j<=len(b) do
-    if less(a[i],b[j]) then 
+    if less(a[i],b[j]) then
       i = i+1
     elseif less(b[j], a[i]) then
       j = j+1
@@ -1775,10 +1775,10 @@ function(a)
     local k = 1
     while j~=0 do
       if j%2==1 then
-        s = Union(s,Set(a[k])) 
+        s = Union(s,Set(a[k]))
       end
       k = k+1
-      j = floor(j/2) 
+      j = floor(j/2)
     end
     r = Union(r,Set(s))
   end
@@ -1794,7 +1794,7 @@ function(a, b)
     local r = Tuple()
     for i=1,n do r[i]=a[i]+b[i] end
     return r
-  else 
+  else
     return nil
   end
 end)
@@ -1814,7 +1814,7 @@ function(a, b)
     local r = 0
     for i=1,n do r=r+a[i]*b[i] end
     return r
-  else 
+  else
     return nil
   end
 end)
@@ -1827,12 +1827,12 @@ function(a, b)
     l[2] = a[3]*b[1]-a[1]*b[3]
     l[3] = a[1]*b[2]-a[2]*b[1]
     return l
-  else 
+  else
     return nil
   end
 end)
 
-local function deg(m) 
+local function deg(m)
   local r = 0
   local l = m[2]
   for i=1,len(l) do
@@ -1843,7 +1843,7 @@ end
 
 local function deglex(m1, m2)
   local d1, d2 = deg(m1), deg(m2)
-  if d1<d2 then 
+  if d1<d2 then
     return false
   elseif d1>d2 then
     return true
@@ -1854,7 +1854,7 @@ end
 Mono.order = deglex
 
 Rule(Power(Mono(c_NumericQ, l_Tuple), p_Int),
-function(c, l, p) 
+function(c, l, p)
   return Mono(c^p, p*l)
 end, Mono)
 
@@ -1885,7 +1885,7 @@ function(m)
     if equal(m[i][2], last) then
       f = false
       c = c+m[i][1]
-    else 
+    else
       if not equal(c, Int(0)) then
         r[len(r)+1] = Mono(c, last)
       else
@@ -1911,16 +1911,16 @@ local function isPolynomial(p, var)
     var[p[1]] = p
     return true
   elseif Numeric(p):test() then
-    return true 
+    return true
   elseif rawequal(p[0], Plus) or rawequal(p[0], Times) then
     for i=1,len(p) do
       if not isPolynomial(p[i], var) then
         return false
       end
     end
-    return true 
+    return true
   elseif rawequal(p[0], Power) then
-    if isPolynomial(p[1], var) 
+    if isPolynomial(p[1], var)
       and rawequal(p[2][0], Int) and p[2][1]>0 then
       return true
     end
@@ -1933,9 +1933,9 @@ local function isMonomial(p, var)
     var[p[1]] = p
     return true
   elseif Numeric(p):test() then
-    return true 
+    return true
   elseif rawequal(p[0], Power) then
-    if isSymbol(p[1]) 
+    if isSymbol(p[1])
       and rawequal(p[2][0], Int) and p[2][1]>0 then
       var[p[1][1]] = p[1]
       return true
@@ -1946,7 +1946,7 @@ local function isMonomial(p, var)
         return false
       end
     end
-    return true 
+    return true
   end
   return false
 end
@@ -1960,7 +1960,7 @@ local function isExpandedPolynomial(p, var)
         return false
       end
     end
-    return true 
+    return true
   end
   return false
 end
@@ -1976,7 +1976,7 @@ local function expToPoly(p, var)
   local n = len(s)
   local l = cat(Tuple)
   for i=1,n do l[i] = Int(0) end
-  for i=1,n do 
+  for i=1,n do
     local ll = copy(l)
     ll[i] = Int(1)
     subs[s[i][1]] = cat(Mono, 1, ll)
@@ -2045,7 +2045,7 @@ function(a)
 end)
 
 Rule(TeX(Times(-1,a__)),
-function(a) 
+function(a)
   return Cat('-', TeXP(Times(a)))
 end)
 
@@ -2106,14 +2106,14 @@ Rule(TeX(Mono(c_NumericQ, l_Tuple)),
 function(c, l)
   local s
   local vars = Poly.vars or defaultVars
-  local p = Mono(c, l) 
+  local p = Mono(c, l)
   if equal(p[1], Int(1)) then
     if deg(p)==0 then return Str('1') end
     s = ''
   elseif equal(p[1], Int(-1)) then
     if deg(p)==0 then return Str('-1') end
     s = '-'
-  else 
+  else
     s = TeX(p[1])[1]
   end
   local l = p[2]
@@ -2124,7 +2124,7 @@ function(c, l)
     elseif ll[1]>1 then
       local ls = ''..ll[1]
       if len(ls)==1 then
-        s = s..vars[i][1]..'^'..ls        
+        s = s..vars[i][1]..'^'..ls       
       else
         s = s..vars[i][1]..'^{'..ls..'}'
       end
@@ -2164,17 +2164,17 @@ function(c)
   return Str(s)
 end)
 
-Rule(TeX(Dec(n_RatQ)), 
+Rule(TeX(Dec(n_RatQ)),
 function (n)
   return Str(#n.."")
 end, Dec)
 
-Rule(TeX(Dec(n_RatQ, m_Int)), 
+Rule(TeX(Dec(n_RatQ, m_Int)),
 function (n, m)
   if #m>=0 then
     return Str(string.format('%.'..(#m)..'f', #n))
   end
-  return nil  
+  return nil 
 end, Dec)
 
 Rule(TeX(Plus(c__)),
@@ -2269,7 +2269,7 @@ function(n) return Int(0) end)
 Rule(Sin(Times(p_Rat, Pi)),
 function(p)
   local a, b = p[1], p[2]
-  if a < 0 then 
+  if a < 0 then
     return -Sin((-a)*Pi/b)
   elseif a/b > 2 then
     return Sin((a%(2*b))*Pi/b)
@@ -2302,7 +2302,7 @@ function(n) return (-1)^n end)
 Rule(Cos(Times(p_Rat, Pi)),
 function(p)
   local a, b = p[1], p[2]
-  if a < 0 then 
+  if a < 0 then
     return Cos((-a)*Pi/b)
   elseif a/b > 2 then
     return Cos((a%(2*b))*Pi/b)
@@ -2349,15 +2349,15 @@ function(x) return -Sin(x) end)
 
 Rule(Diff(Times(k_, a__), x_Symbol),
 function(k, a, x)
-  if not has(k, x) then 
+  if not has(k, x) then
     return k*Diff(Times(a), x)
   else
     return Times(Diff(k, x), a)+k*Diff(Times(a), x)
   end
 end)
 
-Rule(Diff(Plus(a__), x_Symbol), 
-function(a, x) 
+Rule(Diff(Plus(a__), x_Symbol),
+function(a, x)
   return Map(function(t) return Diff(t,x) end, Plus(a))
 end)
 
@@ -2458,27 +2458,27 @@ end, Complex)
 
 I = Complex(0, 1)
 
-Rule(Complex(a_, 0), 
+Rule(Complex(a_, 0),
 function(a)
   return a
 end)
 
-Rule(Conj(Complex(a_, b_)), 
+Rule(Conj(Complex(a_, b_)),
 function(a, b)
   return Complex(a, -b)
 end)
 
-Rule(Abs(a_Int), 
+Rule(Abs(a_Int),
 function(a)
   return Int(abs(a[1]))
 end)
 
-Rule(Abs(a_Rat), 
+Rule(Abs(a_Rat),
 function(a)
   return Rat(abs(a[1]), a[2])
 end)
 
-Rule(Abs(Complex(a_, b_)), 
+Rule(Abs(Complex(a_, b_)),
 function(a, b)
   return Sqrt(a^2+b^2)
 end)
@@ -2486,37 +2486,37 @@ end)
 Rule(Plus(Complex(a_, b_),
           Complex(c_, d_)),
 function(a, b, c, d)
-  return Complex(a+c, b+d) 
+  return Complex(a+c, b+d)
 end, Complex)
 
 Rule(Plus(a_,
           Complex(c_, d_)),
 function(a, c, d)
-  return Complex(a+c, d) 
+  return Complex(a+c, d)
 end, Complex)
 
 Rule(Plus(Complex(c_, d_),
           a_),
 function(c, d, a)
-  return Complex(a+c, d) 
+  return Complex(a+c, d)
 end, Complex)
 
 Rule(Times(Complex(a_, b_),
            Complex(c_, d_)),
 function(a, b, c, d)
-  return Complex(a*c-b*d, a*d+b*c) 
+  return Complex(a*c-b*d, a*d+b*c)
 end, Complex)
 
 Rule(Times(a_,
           Complex(c_, d_)),
 function(a, c, d)
-  return Complex(a*c, a*d) 
+  return Complex(a*c, a*d)
 end, Complex)
 
 Rule(Times(Complex(c_, d_),
            a_ ),
 function(c, d, a)
-  return Complex(a*c, a*d) 
+  return Complex(a*c, a*d)
 end, Complex)
 
 Rule(Power(z_Complex, n_Int),
@@ -2542,7 +2542,7 @@ function(a, b)
     return Cat(TeX(a),b)
   else
     return Cat(TeX(a),'+',b)
-  end 
+  end
 end, Complex)
 
 Rule(Matrix({a_}),
@@ -2563,7 +2563,7 @@ function(m, n, f)
   return Apply(Matrix, rs)
 end)
 
-local function dims(m) 
+local function dims(m)
   return len(m), len(m[1])
 end
 
@@ -2585,7 +2585,7 @@ function(s)
       else
         v = Int(tonumber(ss))
       end
-      c[len(c)+1] = v 
+      c[len(c)+1] = v
     end
     m[len(m)+1] = c
   end
@@ -2673,7 +2673,7 @@ Y[len(Y)+1],X[len(X)+1]={},x end
   for l=1,n-1 do
   yl=Int(0)
   for i=1,n do for j=1,n do Y[i][j]=Int(0) end end
-  for i=n-l+1,1,-1 do for j=n,i,-1 do  
+  for i=n-l+1,1,-1 do for j=n,i,-1 do 
   y = j>i and -X[i][j] or (i==n and Int(0) or yl+X[i+1][i+1])
   yl = i==j and y or yl
   for k=1,n do Y[i][k]=Y[i][k]+y*A[j][k] end
@@ -2683,9 +2683,9 @@ Y[len(Y)+1],X[len(X)+1]={},x end
   return X[1][1]
 end
 
-local function det(A) 
+local function det(A)
   local m, n = dims(A)
-  if m~=n then 
+  if m~=n then
     return nil
   end
   if n==2 then
@@ -2755,7 +2755,7 @@ local function rref(A)
         local k = Times(-1, A[i][j]/A[ii][j])
         if not equal(k, Int(0)) then
           A[i][j] = Int(0)
-          for jj=j+1,n do 
+          for jj=j+1,n do
             A[i][jj] = Expand(A[i][jj]+k*A[ii][jj])
           end
         end
@@ -2764,7 +2764,7 @@ local function rref(A)
         local k = Times(-1, A[i][j]/A[ii][j])
         if not equal(k, Int(0)) then
           A[i][j] = Int(0)
-          for jj=j+1,n do 
+          for jj=j+1,n do
             A[i][jj] = Expand(A[i][jj]+k*A[ii][jj])
           end
         end
@@ -2796,7 +2796,7 @@ Rule(Matrix(m_Int, n_Int, k_RatQ),
 function(m, n, k)
   return Matrix(m, n,
     function(i,j)
-      if i:eq(j) then 
+      if i:eq(j) then
         return k
       else
         return Int(0)
@@ -2818,13 +2818,13 @@ Rule(Diag(List(d__)),
 function(d)
   return Matrix(len(d), len(d),
     function(i,j)
-      if i:eq(j) then 
+      if i:eq(j) then
         return d[i[1]]
       else
         return Int(0)
       end
     end)
-end)  
+end) 
 
 Rule(Diag(A_Matrix),
 function(A)
@@ -2833,7 +2833,7 @@ function(A)
   n = min(m, n)
   for i=1,n do l[len(l)+1] = A[i][i] end
   return l
-end)  
+end) 
 
 Rule(Tr(A_Matrix),
 function(A)
@@ -2842,19 +2842,19 @@ function(A)
   n = min(m, n)
   for i=1,n do r = r+A[i][i] end
   return r
-end)  
+end) 
 
 Rule(Inv(A_Matrix),
 function(A)
   local m, n = dims(A)
-  if n~=m then 
+  if n~=m then
     return nil
   end
   local AI = Block({A, Matrix(n, n, 1)})
   AI = RREF(AI)
   return Sub(AI,{1,n},{n+1,2*n})
 end)
-  
+ 
 Rule(Sub(a_Matrix,
   List(i1_Int, i2_Int),
   List(j1_Int, j2_Int)),
@@ -2926,7 +2926,7 @@ local function gramSchmidt(B)
     local br = copy(bi)
     for j=1,i-1 do
       local bj = Sub(R,j,{1,n})
-      mu[i][j] = (bi..Trans(bj))/mu[j][j] 
+      mu[i][j] = (bi..Trans(bj))/mu[j][j]
       br = br - mu[i][j]*bj
     end
     mu[i][i] = br..Trans(br)
@@ -3011,7 +3011,7 @@ function (a)
   local ir = 1
   for ib=1,mb do
     local m = len(a[ib][1])
-    for i = 1,m do 
+    for i = 1,m do
       local l = List()
       for jb=1,nb do
         local mm, n = dims(a[ib][jb])
@@ -3083,7 +3083,7 @@ function(a)
 end)
 
 Rule(Output(Times(-1,a__)),
-function(a) 
+function(a)
   return Cat('-', OutputP(Times(a)))
 end)
 
@@ -3159,9 +3159,9 @@ _G['Symbols'] = Symbols
 _G['Rule'] = Rule
 _G['Clear'] = function(...)
 local s = {...}
-  for i=1,#s do 
+  for i=1,#s do
     guacyra.__symbols[s[i][1]] = nil
-  end 
+  end
 end
 _G['texcmd'] = texcmd
 
